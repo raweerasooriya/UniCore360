@@ -44,6 +44,14 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
+                        // Explicitly define the authorization endpoint
+                        .authorizationEndpoint(authorization -> authorization
+                                .baseUri("/oauth2/authorization")
+                        )
+                        // Explicitly define the redirection endpoint
+                        .redirectionEndpoint(redirection -> redirection
+                                .baseUri("/login/oauth2/code/*")
+                        )
                         .successHandler(new AuthenticationSuccessHandler() {
                             @Override
                             public void onAuthenticationSuccess(HttpServletRequest request,
@@ -86,7 +94,6 @@ public class SecurityConfig {
 
                                 // Log the user info
                                 System.out.println("Google Login Success - Email: " + email + ", Name: " + name + ", Role: " + role);
-
 
                                 String redirectUrl = "http://localhost:3000/oauth-redirect?email=" + email +
                                         "&name=" + (name != null ? name.replace(" ", "%20") : "") +
