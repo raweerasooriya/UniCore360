@@ -23,6 +23,7 @@ import {
   ShieldCheck,
   LayoutDashboard
 } from 'lucide-react';
+import api from '../services/api';
 
 // ---------- Logo Component ----------
 const Logo = ({ className = "" }) => (
@@ -79,40 +80,28 @@ const StatusBadge = ({ status }) => {
   };
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-tighter ${styles[status] || 'bg-zinc-50 text-zinc-500 border-zinc-100'}`}>
-      {status.replace('_', ' ')}
+      {status?.replace('_', ' ') || status}
     </span>
   );
 };
 
 // ---------- Main AdminDashboard ----------
 export default function AdminDashboard() {
-  const [activeView, setActiveView] = useState('overview'); // 'overview', 'resources', 'users', 'bookings', 'tickets'
+  const [activeView, setActiveView] = useState('overview');
   const [unreadCount, setUnreadCount] = useState(3);
   const [searchQuery, setSearchQuery] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
+  const [editRoleDialog, setEditRoleDialog] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
   const navigate = useNavigate();
-
   const username = localStorage.getItem('username') || 'Admin';
 
-  // Role check
-  useEffect(() => {
-    const role = localStorage.getItem('role');
-    if (role !== 'ADMIN') {
-      navigate('/login');
-    }
-  }, [navigate]);
-
-  // ---------- Mock Data ----------
+  // ---------- Mock Data (Resources, Bookings, Tickets - keep as before) ----------
   const [resources, setResources] = useState([
     { id: 1, name: 'Conference Room A', type: 'ROOM', capacity: 20, location: 'Building 1', status: 'ACTIVE' },
     { id: 2, name: 'Lab 101', type: 'LAB', capacity: 30, location: 'Building 2', status: 'ACTIVE' },
     { id: 3, name: 'Projector', type: 'EQUIPMENT', capacity: null, location: 'AV Room', status: 'MAINTENANCE' },
-  ]);
-
-  const [users, setUsers] = useState([
-    { id: 1, name: 'John Student', email: 'john@uni.edu', role: 'USER', bookings: 5, tickets: 2 },
-    { id: 2, name: 'Jane Tech', email: 'jane@uni.edu', role: 'TECHNICIAN', bookings: 0, tickets: 8 },
-    { id: 3, name: 'Admin User', email: 'admin@uni.edu', role: 'ADMIN', bookings: 3, tickets: 0 },
   ]);
 
   const [bookings, setBookings] = useState([
@@ -127,12 +116,46 @@ export default function AdminDashboard() {
     { id: 3, title: 'Network issue', user: 'Bob Wilson', priority: 'HIGH', status: 'OPEN', assignedTo: null },
   ]);
 
-  // ---------- Handlers ----------
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
+  // ---------- Role Check ----------
+  useEffect(() => {
+    const role = localStorage.getItem('role');
+    if (role !== 'ADMIN') {
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  // ---------- Fetch Users when activeView changes to 'users' ----------
+  const fetchUsers = async () => {
+      setUsersLoading(true);
+      try {
+          const response = await api.get('/admin/users');
+          console.log('Users fetched:', response.data);
+          setUsers(response.data);
+      } catch (err) {
+          console.error('Failed to fetch users', err);
+      } finally {
+          setUsersLoading(false);
+      }
   };
 
+  useEffect(() => {
+      if (activeView === 'users') {
+          fetchUsers();
+      }
+  }, [activeView]);
+
+  // ---------- Update User Role ----------
+  const updateUserRole = async (email, newRole) => {
+    try {
+      await api.put(`/admin/users/${email}/role`, { role: newRole });
+      await fetchUsers(); // refresh list
+    } catch (err) {
+      console.error('Failed to update role', err);
+      alert('Could not update role. Check backend logs.');
+    }
+  };
+
+  // ---------- Handlers for Bookings, etc. ----------
   const handleApproveBooking = (id) => {
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'APPROVED' } : b));
   };
@@ -141,16 +164,21 @@ export default function AdminDashboard() {
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'REJECTED' } : b));
   };
 
-  // Filter data based on search (only for management views)
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/');
+  };
+
+  // ---------- Filtering (search only in active management views) ----------
   const filteredResources = resources.filter(r =>
     r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     r.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
     r.location.toLowerCase().includes(searchQuery.toLowerCase())
   );
   const filteredUsers = users.filter(u =>
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.role.toLowerCase().includes(searchQuery.toLowerCase())
+      (u.name || u.email).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.role.toLowerCase().includes(searchQuery.toLowerCase())
   );
   const filteredBookings = bookings.filter(b =>
     b.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -182,41 +210,29 @@ export default function AdminDashboard() {
               className="pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-100 rounded-full text-xs outline-none focus:ring-2 focus:ring-blue-600/20 w-64"
             />
           </div>
-          <button
-            onClick={() => setOpenDialog(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all"
-          >
+          <button onClick={() => setOpenDialog(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all">
             <Plus size={16} /> Add Resource
           </button>
         </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left">
-          <thead>
-            <tr className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
-              <th className="px-8 py-4">Name & Type</th>
-              <th className="px-8 py-4">Location</th>
-              <th className="px-8 py-4">Capacity</th>
-              <th className="px-8 py-4">Status</th>
-              <th className="px-8 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
+          <thead><tr className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
+            <th className="px-8 py-4">Name & Type</th><th className="px-8 py-4">Location</th>
+            <th className="px-8 py-4">Capacity</th><th className="px-8 py-4">Status</th>
+            <th className="px-8 py-4 text-right">Actions</th>
+          </tr></thead>
           <tbody className="divide-y divide-zinc-100">
-            {filteredResources.map((r) => (
-              <tr key={r.id} className="hover:bg-zinc-50/50 transition-colors">
-                <td className="px-8 py-5">
-                  <div className="font-bold text-zinc-900">{r.name}</div>
-                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">{r.type}</div>
-                </td>
-                <td className="px-8 py-5 text-sm text-zinc-500 font-medium">{r.location}</td>
-                <td className="px-8 py-5 text-sm text-zinc-500 font-medium">{r.capacity || '-'}</td>
+            {filteredResources.map(r => (
+              <tr key={r.id} className="hover:bg-zinc-50/50">
+                <td className="px-8 py-5"><div className="font-bold">{r.name}</div><div className="text-[10px] text-zinc-400 uppercase">{r.type}</div></td>
+                <td className="px-8 py-5 text-sm">{r.location}</td>
+                <td className="px-8 py-5 text-sm">{r.capacity || '-'}</td>
                 <td className="px-8 py-5"><StatusBadge status={r.status} /></td>
-                <td className="px-8 py-5 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button className="p-2 text-zinc-400 hover:text-blue-600 transition-colors"><Edit2 size={16} /></button>
-                    <button className="p-2 text-zinc-400 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
-                  </div>
-                </td>
+                <td className="px-8 py-5 text-right"><div className="flex justify-end gap-2">
+                  <button className="p-2 text-zinc-400 hover:text-blue-600"><Edit2 size={16} /></button>
+                  <button className="p-2 text-zinc-400 hover:text-red-500"><Trash2 size={16} /></button>
+                </div></td>
               </tr>
             ))}
           </tbody>
@@ -232,122 +248,101 @@ export default function AdminDashboard() {
           <Users size={20} className="text-blue-600" />
           <h2 className="text-xl font-black text-zinc-900">Users Management</h2>
         </div>
-        <div className="flex gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
-            <input
-              type="text"
-              placeholder="Search users..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-100 rounded-full text-xs outline-none focus:ring-2 focus:ring-blue-600/20 w-64"
-            />
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl text-xs font-bold hover:bg-zinc-800 transition-all">
-            <UserPlus size={16} /> Invite User
-          </button>
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
-              <th className="px-8 py-4">User Details</th>
-              <th className="px-8 py-4">Role</th>
-              <th className="px-8 py-4">Activity</th>
-              <th className="px-8 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100">
-            {filteredUsers.map((u) => (
-              <tr key={u.id} className="hover:bg-zinc-50/50 transition-colors">
-                <td className="px-8 py-5">
-                  <div className="font-bold text-zinc-900">{u.name}</div>
-                  <div className="text-xs text-zinc-400">{u.email}</div>
-                </td>
-                <td className="px-8 py-5">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-tighter ${
-                    u.role === 'ADMIN' ? 'bg-zinc-900 text-white border-zinc-900' :
-                    u.role === 'TECHNICIAN' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                    'bg-blue-50 text-blue-700 border-blue-100'
-                  }`}>
-                    {u.role}
-                  </span>
-                </td>
-                <td className="px-8 py-5">
-                  <div className="text-xs text-zinc-500 font-medium">{u.bookings} Bookings • {u.tickets} Tickets</div>
-                </td>
-                <td className="px-8 py-5 text-right">
-                  <button className="px-4 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-xl transition-all">Edit Role</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-  const renderBookingsPanel = () => (
-    <div className="bg-white rounded-[2rem] border border-zinc-200 overflow-hidden shadow-sm">
-      <div className="px-8 py-6 flex justify-between items-center border-b border-zinc-100">
-        <div className="flex items-center gap-2">
-          <CalendarDays size={20} className="text-blue-600" />
-          <h2 className="text-xl font-black text-zinc-900">Booking Requests</h2>
-        </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
           <input
             type="text"
-            placeholder="Search bookings..."
+            placeholder="Search users..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-100 rounded-full text-xs outline-none focus:ring-2 focus:ring-blue-600/20 w-64"
           />
         </div>
       </div>
+      {usersLoading ? (
+        <div className="p-8 text-center">Loading users...</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead><tr className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
+              <th className="px-8 py-4">User Details</th><th className="px-8 py-4">Role</th>
+              <th className="px-8 py-4">Activity</th><th className="px-8 py-4 text-right">Actions</th>
+            </tr></thead>
+            <tbody className="divide-y divide-zinc-100">
+              {filteredUsers.map(u => (
+                <tr key={u.id} className="hover:bg-zinc-50/50">
+                  <td className="px-8 py-5"><div className="font-bold">{u.name || u.email}</div><div className="text-xs text-zinc-400">{u.email}</div></td>
+                  <td className="px-8 py-5"><span className={`px-2 py-0.5 rounded-full text-[10px] font-black border uppercase ${
+                    u.role === 'ADMIN' ? 'bg-zinc-900 text-white border-zinc-900' :
+                    u.role === 'TECHNICIAN' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                    'bg-blue-50 text-blue-700 border-blue-100'
+                  }`}>{u.role}</span></td>
+                  <td className="px-8 py-5"><div className="text-xs text-zinc-500">{u.bookings || 0} Bookings • {u.tickets || 0} Tickets</div></td>
+                  <td className="px-8 py-5 text-right">
+                    <button onClick={() => setEditRoleDialog({ user: u, open: true })} className="px-4 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-xl">Edit Role</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {/* Edit Role Dialog */}
+      <AnimatePresence>
+        {editRoleDialog?.open && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditRoleDialog(null)} className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden">
+              <div className="p-8">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white"><Users size={24} /></div>
+                  <div><h3 className="text-2xl font-black text-zinc-900">Change Role</h3><p className="text-zinc-500 text-sm">{editRoleDialog.user.email}</p></div>
+                </div>
+                <div className="space-y-4">
+                  <label className="block text-xs font-black text-zinc-400 uppercase tracking-widest">New Role</label>
+                  <select className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl" value={editRoleDialog.user.role} onChange={(e) => setEditRoleDialog({ ...editRoleDialog, user: { ...editRoleDialog.user, role: e.target.value } })}>
+                    <option value="USER">USER</option>
+                    <option value="TECHNICIAN">TECHNICIAN</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </select>
+                </div>
+                <div className="flex gap-3 pt-6">
+                  <button onClick={() => setEditRoleDialog(null)} className="flex-1 py-4 bg-zinc-100 text-zinc-600 rounded-2xl font-bold">Cancel</button>
+                  <button onClick={async () => { await updateUserRole(editRoleDialog.user.email, editRoleDialog.user.role); setEditRoleDialog(null); }} className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-bold">Save Changes</button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+
+  const renderBookingsPanel = () => (
+    <div className="bg-white rounded-[2rem] border border-zinc-200 overflow-hidden shadow-sm">
+      <div className="px-8 py-6 flex justify-between items-center border-b border-zinc-100">
+        <div className="flex items-center gap-2"><CalendarDays size={20} className="text-blue-600" /><h2 className="text-xl font-black text-zinc-900">Booking Requests</h2></div>
+        <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
+          <input type="text" placeholder="Search bookings..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-100 rounded-full text-xs w-64" />
+        </div>
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left">
-          <thead>
-            <tr className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
-              <th className="px-8 py-4">User & Resource</th>
-              <th className="px-8 py-4">Date & Time</th>
-              <th className="px-8 py-4">Status</th>
-              <th className="px-8 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
+          <thead><tr className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
+            <th className="px-8 py-4">User & Resource</th><th className="px-8 py-4">Date & Time</th><th className="px-8 py-4">Status</th><th className="px-8 py-4 text-right">Actions</th>
+          </tr></thead>
           <tbody className="divide-y divide-zinc-100">
-            {filteredBookings.map((b) => (
-              <tr key={b.id} className="hover:bg-zinc-50/50 transition-colors">
-                <td className="px-8 py-5">
-                  <div className="font-bold text-zinc-900">{b.user}</div>
-                  <div className="text-xs text-zinc-400">{b.resource}</div>
-                </td>
-                <td className="px-8 py-5">
-                  <div className="text-sm text-zinc-500 font-medium">{b.date}</div>
-                  <div className="text-xs text-zinc-400">{b.time}</div>
-                </td>
+            {filteredBookings.map(b => (
+              <tr key={b.id} className="hover:bg-zinc-50/50">
+                <td className="px-8 py-5"><div className="font-bold">{b.user}</div><div className="text-xs text-zinc-400">{b.resource}</div></td>
+                <td className="px-8 py-5"><div className="text-sm">{b.date}</div><div className="text-xs text-zinc-400">{b.time}</div></td>
                 <td className="px-8 py-5"><StatusBadge status={b.status} /></td>
-                <td className="px-8 py-5 text-right">
-                  {b.status === 'PENDING' ? (
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => handleApproveBooking(b.id)}
-                        className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"
-                      >
-                        <Check size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleRejectBooking(b.id)}
-                        className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <button className="p-2 text-zinc-400 hover:text-blue-600 transition-colors"><MoreVertical size={16} /></button>
-                  )}
-                </td>
+                <td className="px-8 py-5 text-right">{b.status === 'PENDING' ? (
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => handleApproveBooking(b.id)} className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white"><Check size={16} /></button>
+                    <button onClick={() => handleRejectBooking(b.id)} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white"><X size={16} /></button>
+                  </div>
+                ) : <button className="p-2 text-zinc-400 hover:text-blue-600"><MoreVertical size={16} /></button>}</td>
               </tr>
             ))}
           </tbody>
@@ -359,57 +354,24 @@ export default function AdminDashboard() {
   const renderTicketsPanel = () => (
     <div className="bg-white rounded-[2rem] border border-zinc-200 overflow-hidden shadow-sm">
       <div className="px-8 py-6 flex justify-between items-center border-b border-zinc-100">
-        <div className="flex items-center gap-2">
-          <Ticket size={20} className="text-blue-600" />
-          <h2 className="text-xl font-black text-zinc-900">Incident Tickets</h2>
-        </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
-          <input
-            type="text"
-            placeholder="Search tickets..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-100 rounded-full text-xs outline-none focus:ring-2 focus:ring-blue-600/20 w-64"
-          />
+        <div className="flex items-center gap-2"><Ticket size={20} className="text-blue-600" /><h2 className="text-xl font-black text-zinc-900">Incident Tickets</h2></div>
+        <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
+          <input type="text" placeholder="Search tickets..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-100 rounded-full text-xs w-64" />
         </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left">
-          <thead>
-            <tr className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
-              <th className="px-8 py-4">Ticket Details</th>
-              <th className="px-8 py-4">Priority</th>
-              <th className="px-8 py-4">Status</th>
-              <th className="px-8 py-4">Assigned To</th>
-              <th className="px-8 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
+          <thead><tr className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
+            <th className="px-8 py-4">Ticket Details</th><th className="px-8 py-4">Priority</th><th className="px-8 py-4">Status</th><th className="px-8 py-4">Assigned To</th><th className="px-8 py-4 text-right">Actions</th>
+          </tr></thead>
           <tbody className="divide-y divide-zinc-100">
-            {filteredTickets.map((t) => (
-              <tr key={t.id} className="hover:bg-zinc-50/50 transition-colors">
-                <td className="px-8 py-5">
-                  <div className="font-bold text-zinc-900">{t.title}</div>
-                  <div className="text-xs text-zinc-400">Reported by {t.user}</div>
-                </td>
-                <td className="px-8 py-5">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-tighter ${
-                    t.priority === 'HIGH' ? 'bg-red-50 text-red-700 border-red-100' :
-                    t.priority === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                    'bg-emerald-50 text-emerald-700 border-emerald-100'
-                  }`}>
-                    {t.priority}
-                  </span>
-                </td>
+            {filteredTickets.map(t => (
+              <tr key={t.id} className="hover:bg-zinc-50/50">
+                <td className="px-8 py-5"><div className="font-bold">{t.title}</div><div className="text-xs text-zinc-400">Reported by {t.user}</div></td>
+                <td className="px-8 py-5"><span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${t.priority === 'HIGH' ? 'bg-red-50 text-red-700' : t.priority === 'MEDIUM' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>{t.priority}</span></td>
                 <td className="px-8 py-5"><StatusBadge status={t.status} /></td>
-                <td className="px-8 py-5 text-sm text-zinc-500 font-medium">{t.assignedTo || 'Unassigned'}</td>
-                <td className="px-8 py-5 text-right">
-                  {!t.assignedTo ? (
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all">Assign</button>
-                  ) : (
-                    <button className="p-2 text-zinc-400 hover:text-blue-600 transition-colors"><MoreVertical size={16} /></button>
-                  )}
-                </td>
+                <td className="px-8 py-5 text-sm">{t.assignedTo || 'Unassigned'}</td>
+                <td className="px-8 py-5 text-right">{!t.assignedTo ? <button className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700">Assign</button> : <button className="p-2 text-zinc-400 hover:text-blue-600"><MoreVertical size={16} /></button>}</td>
               </tr>
             ))}
           </tbody>
@@ -418,21 +380,12 @@ export default function AdminDashboard() {
     </div>
   );
 
-  // ---------- Render Overview (Dashboard) ----------
   const renderOverview = () => (
     <div className="space-y-8">
       <section className="bg-zinc-900 rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl shadow-zinc-200">
         <div className="relative z-10 max-w-2xl">
-          <motion.h1
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl font-black mb-4 tracking-tight"
-          >
-            Operations Command, {username} 👑
-          </motion.h1>
-          <p className="text-zinc-400 text-lg font-medium leading-relaxed">
-            Oversee campus resources, manage user access, and ensure smooth operational workflows across all departments.
-          </p>
+          <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-4xl font-black mb-4 tracking-tight">Operations Command, {username} 👑</motion.h1>
+          <p className="text-zinc-400 text-lg font-medium leading-relaxed">Oversee campus resources, manage user access, and ensure smooth operational workflows across all departments.</p>
         </div>
         <ShieldCheck className="absolute right-12 bottom-8 text-white/5" size={160} />
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2" />
@@ -447,50 +400,30 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-[2rem] border border-zinc-200 p-8 shadow-sm">
-          <h2 className="text-xl font-black text-zinc-900 mb-6 flex items-center gap-2">
-            <TrendingUp size={20} className="text-blue-600" />
-            Top Used Resources
-          </h2>
-          <div className="space-y-4">
-            {[
-              { name: 'Conference Room A', count: 45, color: 'bg-blue-600' },
-              { name: 'Lab 101', count: 32, color: 'bg-emerald-600' },
-              { name: 'Projector', count: 28, color: 'bg-amber-600' },
-            ].map((item, i) => (
-              <div key={i} className="space-y-2">
-                <div className="flex justify-between text-sm font-bold text-zinc-700">
-                  <span>{item.name}</span>
-                  <span>{item.count} bookings</span>
-                </div>
-                <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(item.count / 50) * 100}%` }}
-                    className={`h-full ${item.color}`}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          <h2 className="text-xl font-black text-zinc-900 mb-6 flex items-center gap-2"><TrendingUp size={20} className="text-blue-600" /> Top Used Resources</h2>
+          <div className="space-y-4">{[
+            { name: 'Conference Room A', count: 45, color: 'bg-blue-600' },
+            { name: 'Lab 101', count: 32, color: 'bg-emerald-600' },
+            { name: 'Projector', count: 28, color: 'bg-amber-600' },
+          ].map((item, i) => (
+            <div key={i} className="space-y-2">
+              <div className="flex justify-between text-sm font-bold"><span>{item.name}</span><span>{item.count} bookings</span></div>
+              <div className="h-2 bg-zinc-100 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${(item.count / 50) * 100}%` }} className={`h-full ${item.color}`} /></div>
+            </div>
+          ))}</div>
         </div>
-
         <div className="bg-white rounded-[2rem] border border-zinc-200 p-8 shadow-sm">
-          <h2 className="text-xl font-black text-zinc-900 mb-6 flex items-center gap-2">
-            <Clock size={20} className="text-amber-600" />
-            Peak Booking Hours
-          </h2>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { time: '10:00 - 12:00', label: 'Most Popular', color: 'text-blue-600 bg-blue-50' },
-              { time: '14:00 - 16:00', label: 'High Demand', color: 'text-amber-600 bg-amber-50' },
-              { time: '09:00 - 11:00', label: 'Morning Peak', color: 'text-emerald-600 bg-emerald-50' },
-            ].map((item, i) => (
-              <div key={i} className={`p-4 rounded-2xl border border-transparent ${item.color} text-center`}>
-                <div className="text-sm font-black mb-1">{item.time}</div>
-                <div className="text-[10px] font-bold uppercase tracking-widest opacity-70">{item.label}</div>
-              </div>
-            ))}
-          </div>
+          <h2 className="text-xl font-black text-zinc-900 mb-6 flex items-center gap-2"><Clock size={20} className="text-amber-600" /> Peak Booking Hours</h2>
+          <div className="grid grid-cols-3 gap-4">{[
+            { time: '10:00 - 12:00', label: 'Most Popular', color: 'text-blue-600 bg-blue-50' },
+            { time: '14:00 - 16:00', label: 'High Demand', color: 'text-amber-600 bg-amber-50' },
+            { time: '09:00 - 11:00', label: 'Morning Peak', color: 'text-emerald-600 bg-emerald-50' },
+          ].map((item, i) => (
+            <div key={i} className={`p-4 rounded-2xl border border-transparent ${item.color} text-center`}>
+              <div className="text-sm font-black mb-1">{item.time}</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest opacity-70">{item.label}</div>
+            </div>
+          ))}</div>
         </div>
       </div>
     </div>
@@ -499,39 +432,22 @@ export default function AdminDashboard() {
   // ---------- Main Return ----------
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col font-sans">
-      {/* Top Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-zinc-200">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Logo />
           <div className="flex items-center gap-6">
-            <button className="relative p-2 text-zinc-500 hover:text-blue-600 transition-colors">
-              <Bell size={20} />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
+            <button className="relative p-2 text-zinc-500 hover:text-blue-600"><Bell size={20} /><span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">{unreadCount}</span></button>
             <div className="h-8 w-px bg-zinc-200" />
             <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <div className="text-sm font-bold text-zinc-900">{username}</div>
-                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">System Administrator</div>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-white font-bold border border-zinc-800">
-                {username.charAt(0).toUpperCase()}
-              </div>
-              <button onClick={handleLogout} className="p-2 text-zinc-400 hover:text-red-500 transition-colors">
-                <LogOut size={20} />
-              </button>
+              <div className="text-right hidden sm:block"><div className="text-sm font-bold text-zinc-900">{username}</div><div className="text-[10px] font-bold text-zinc-400 uppercase">System Administrator</div></div>
+              <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-white font-bold">{username.charAt(0).toUpperCase()}</div>
+              <button onClick={handleLogout} className="p-2 text-zinc-400 hover:text-red-500"><LogOut size={20} /></button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Sidebar + Main Content */}
       <div className="flex flex-1">
-        {/* Left Sidebar Navigation */}
         <aside className="w-64 bg-white border-r border-zinc-200 flex-shrink-0 hidden md:block">
           <div className="sticky top-16 p-4 space-y-2">
             <div className="px-3 py-2 text-xs font-bold text-zinc-400 uppercase tracking-wider">Management</div>
@@ -542,34 +458,16 @@ export default function AdminDashboard() {
               { id: 'bookings', label: 'Bookings', icon: CalendarDays },
               { id: 'tickets', label: 'Tickets', icon: Ticket },
             ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveView(item.id);
-                  setSearchQuery(''); // clear search when switching views
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                  activeView === item.id
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-zinc-600 hover:bg-zinc-100'
-                }`}
-              >
+              <button key={item.id} onClick={() => { setActiveView(item.id); setSearchQuery(''); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${activeView === item.id ? 'bg-blue-50 text-blue-700' : 'text-zinc-600 hover:bg-zinc-100'}`}>
                 <item.icon size={18} /> {item.label}
               </button>
             ))}
           </div>
         </aside>
 
-        {/* Main Content Area */}
         <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full">
           <AnimatePresence mode="wait">
-            <motion.div
-              key={activeView}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
+            <motion.div key={activeView} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
               {activeView === 'overview' && renderOverview()}
               {activeView === 'resources' && renderResourcesPanel()}
               {activeView === 'users' && renderUsersPanel()}
@@ -580,70 +478,24 @@ export default function AdminDashboard() {
         </main>
       </div>
 
-      {/* Add Resource Dialog */}
+      {/* Add Resource Dialog (unchanged) */}
       <AnimatePresence>
         {openDialog && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setOpenDialog(false)}
-              className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpenDialog(false)} className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden">
               <div className="p-8 md:p-10">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white">
-                    <Plus size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-zinc-900">Add Resource</h3>
-                    <p className="text-zinc-500 text-sm font-medium">Create a new bookable campus asset</p>
-                  </div>
-                </div>
+                <div className="flex items-center gap-4 mb-8"><div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white"><Plus size={24} /></div><div><h3 className="text-2xl font-black text-zinc-900">Add Resource</h3><p className="text-zinc-500 text-sm">Create a new bookable campus asset</p></div></div>
                 <form className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                      <label className="block text-xs font-black text-zinc-400 uppercase tracking-widest mb-2">Resource Name</label>
-                      <input type="text" className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all font-medium" placeholder="e.g. Conference Room A" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-black text-zinc-400 uppercase tracking-widest mb-2">Type</label>
-                      <select className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all font-medium appearance-none">
-                        <option>Room</option>
-                        <option>Lab</option>
-                        <option>Equipment</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-black text-zinc-400 uppercase tracking-widest mb-2">Capacity</label>
-                      <input type="number" className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all font-medium" placeholder="0" />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-xs font-black text-zinc-400 uppercase tracking-widest mb-2">Location</label>
-                      <input type="text" className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all font-medium" placeholder="e.g. Building 1, Floor 2" />
-                    </div>
+                    <div className="col-span-2"><label className="block text-xs font-black text-zinc-400 uppercase tracking-widest mb-2">Resource Name</label><input type="text" className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600/20" placeholder="e.g. Conference Room A" /></div>
+                    <div><label className="block text-xs font-black text-zinc-400 uppercase tracking-widest mb-2">Type</label><select className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl"><option>Room</option><option>Lab</option><option>Equipment</option></select></div>
+                    <div><label className="block text-xs font-black text-zinc-400 uppercase tracking-widest mb-2">Capacity</label><input type="number" className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl" placeholder="0" /></div>
+                    <div className="col-span-2"><label className="block text-xs font-black text-zinc-400 uppercase tracking-widest mb-2">Location</label><input type="text" className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-2xl" placeholder="e.g. Building 1, Floor 2" /></div>
                   </div>
                   <div className="flex gap-3 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setOpenDialog(false)}
-                      className="flex-1 py-4 bg-zinc-100 text-zinc-600 rounded-2xl font-bold hover:bg-zinc-200 transition-all"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-100"
-                    >
-                      Create Resource
-                    </button>
+                    <button type="button" onClick={() => setOpenDialog(false)} className="flex-1 py-4 bg-zinc-100 text-zinc-600 rounded-2xl font-bold hover:bg-zinc-200">Cancel</button>
+                    <button type="submit" className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 shadow-xl shadow-blue-100">Create Resource</button>
                   </div>
                 </form>
               </div>
@@ -652,9 +504,7 @@ export default function AdminDashboard() {
         )}
       </AnimatePresence>
 
-      <footer className="py-8 text-center text-zinc-400 text-xs font-medium border-t border-zinc-200 mt-8">
-        © 2026 UniCore 360 Operations Hub. Built for PAF IT3030.
-      </footer>
+      <footer className="py-8 text-center text-zinc-400 text-xs font-medium border-t border-zinc-200 mt-8">© 2026 UniCore 360 Operations Hub. Built for PAF IT3030.</footer>
     </div>
   );
 }
