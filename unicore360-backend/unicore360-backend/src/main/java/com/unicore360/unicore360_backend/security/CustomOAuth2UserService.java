@@ -12,7 +12,6 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -34,27 +33,25 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             throw new OAuth2AuthenticationException("Email not found from Google");
         }
 
-        // Determine role from config file
-        Role role = roleMappingService.getRoleForEmail(email);
-        log.info("User {} with email {} -> role {}", name, email, role);
-
         // Find existing user or create new
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
+            // New user – assign role from config file (once)
+            Role role = roleMappingService.getRoleForEmail(email);
             user = new User();
             user.setEmail(email);
             user.setGoogleId(googleId);
+            user.setRole(role);
             user.setCreatedAt(java.time.LocalDateTime.now());
-            log.info("Creating new user with email {}", email);
+            log.info("Creating new user: {} with role {}", email, role);
         } else {
-            log.info("Updating existing user with email {} (old role {})", email, user.getRole());
+            // Existing user – preserve the role that is already in the database
+            log.info("Existing user login: {} – keeping existing role {}", email, user.getRole());
         }
 
-        // Always update name, avatar, and role (role from config overrides)
+        // Always update name and avatar (these can change)
         user.setName(name);
         user.setAvatarUrl(avatarUrl);
-        user.setRole(role);   // <-- CRITICAL: Overwrites existing role
-
         userRepository.save(user);
 
         return new CustomOAuth2User(oAuth2User, user.getRole());
