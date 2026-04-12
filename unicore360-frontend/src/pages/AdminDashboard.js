@@ -103,13 +103,34 @@ export default function AdminDashboard() {
   const [resourceDialog, setResourceDialog] = useState({ open: false, editing: null }); // editing holds resource object or null
   const [resourceForm, setResourceForm] = useState({ name: '', type: 'ROOM', capacity: '', location: '', status: 'ACTIVE' });
   const [searchFilters, setSearchFilters] = useState({ name: '', type: '', location: '', status: '' });
-
+  const [bookings, setBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [rejectDialog, setRejectDialog] = useState({ open: false, bookingId: null, reason: '' });
+  
   // Fetch resources when activeView === 'resources'
   useEffect(() => {
       if (activeView === 'resources') {
           fetchResources();
       }
   }, [activeView]);
+
+  useEffect(() => {
+      if (activeView === 'bookings') {
+          fetchAllBookings();
+      }
+  }, [activeView]);
+
+  const fetchAllBookings = async () => {
+      setBookingsLoading(true);
+      try {
+          const response = await api.get('/api/admin/bookings');
+          setBookings(response.data);
+      } catch (err) {
+          console.error('Failed to fetch bookings', err);
+      } finally {
+          setBookingsLoading(false);
+      }
+  };
 
   const fetchResources = async () => {
       setResourcesLoading(true);
@@ -156,13 +177,6 @@ export default function AdminDashboard() {
       }
   };
 
-  // ---------- Mock Data (Resources, Bookings, Tickets - keep as before) ----------
-
-  const [bookings, setBookings] = useState([
-    { id: 1, user: 'John Student', resource: 'Conference Room A', date: '2026-03-15', time: '10:00-12:00', status: 'PENDING' },
-    { id: 2, user: 'John Student', resource: 'Lab 101', date: '2026-03-16', time: '14:00-16:00', status: 'APPROVED' },
-    { id: 3, user: 'Jane Smith', resource: 'Projector', date: '2026-03-17', time: '09:00-11:00', status: 'PENDING' },
-  ]);
 
   const [tickets, setTickets] = useState([
     { id: 1, title: 'Projector not working', user: 'John Student', priority: 'HIGH', status: 'OPEN', assignedTo: null },
@@ -210,12 +224,23 @@ export default function AdminDashboard() {
   };
 
   // ---------- Handlers for Bookings, etc. ----------
-  const handleApproveBooking = (id) => {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'APPROVED' } : b));
+  const handleApproveBooking = async (id) => {
+      try {
+          await api.put(`/api/admin/bookings/${id}/approve`);
+          await fetchAllBookings();
+      } catch (err) {
+          alert('Approval failed');
+      }
   };
 
-  const handleRejectBooking = (id) => {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'REJECTED' } : b));
+  const handleRejectBooking = async (id, reason) => {
+      try {
+          await api.put(`/api/admin/bookings/${id}/reject`, { reason });
+          setRejectDialog({ open: false, bookingId: null, reason: '' });
+          await fetchAllBookings();
+      } catch (err) {
+          alert('Rejection failed');
+      }
   };
 
   const handleLogout = () => {
@@ -235,10 +260,11 @@ export default function AdminDashboard() {
       u.role.toLowerCase().includes(searchQuery.toLowerCase())
   );
   const filteredBookings = bookings.filter(b =>
-    b.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.resource.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.date.includes(searchQuery)
+      (b.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.resource?.name?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
   const filteredTickets = tickets.filter(t =>
     t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -511,36 +537,133 @@ export default function AdminDashboard() {
   );
 
   const renderBookingsPanel = () => (
-    <div className="bg-white rounded-[2rem] border border-zinc-200 overflow-hidden shadow-sm">
-      <div className="px-8 py-6 flex justify-between items-center border-b border-zinc-100">
-        <div className="flex items-center gap-2"><CalendarDays size={20} className="text-blue-600" /><h2 className="text-xl font-black text-zinc-900">Booking Requests</h2></div>
-        <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
-          <input type="text" placeholder="Search bookings..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-100 rounded-full text-xs w-64" />
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead><tr className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
-            <th className="px-8 py-4">User & Resource</th><th className="px-8 py-4">Date & Time</th><th className="px-8 py-4">Status</th><th className="px-8 py-4 text-right">Actions</th>
-          </tr></thead>
-          <tbody className="divide-y divide-zinc-100">
-            {filteredBookings.map(b => (
-              <tr key={b.id} className="hover:bg-zinc-50/50">
-                <td className="px-8 py-5"><div className="font-bold">{b.user}</div><div className="text-xs text-zinc-400">{b.resource}</div></td>
-                <td className="px-8 py-5"><div className="text-sm">{b.date}</div><div className="text-xs text-zinc-400">{b.time}</div></td>
-                <td className="px-8 py-5"><StatusBadge status={b.status} /></td>
-                <td className="px-8 py-5 text-right">{b.status === 'PENDING' ? (
-                  <div className="flex justify-end gap-2">
-                    <button onClick={() => handleApproveBooking(b.id)} className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white"><Check size={16} /></button>
-                    <button onClick={() => handleRejectBooking(b.id)} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white"><X size={16} /></button>
+      <div className="bg-white rounded-[2rem] border border-zinc-200 overflow-hidden shadow-sm">
+          <div className="px-8 py-6 flex justify-between items-center border-b border-zinc-100">
+              <div className="flex items-center gap-2">
+                  <CalendarDays size={20} className="text-blue-600" />
+                  <h2 className="text-xl font-black text-zinc-900">Booking Requests</h2>
+              </div>
+              <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
+                  <input
+                      type="text"
+                      placeholder="Search bookings..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-100 rounded-full text-xs w-64"
+                  />
+              </div>
+          </div>
+          {bookingsLoading ? (
+              <div className="p-8 text-center">Loading bookings...</div>
+          ) : (
+              <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                      <thead className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
+                          <tr>
+                              <th className="px-8 py-4">User & Resource</th>
+                              <th className="px-8 py-4">Date & Time</th>
+                              <th className="px-8 py-4">Status</th>
+                              <th className="px-8 py-4 text-right">Actions</th>
+                          </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100">
+                          {bookings
+                              .filter(b =>
+                                  (b.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                  b.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                  b.resource?.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+                              )
+                              .map((b) => (
+                                  <tr key={b.id} className="hover:bg-zinc-50/50">
+                                      <td className="px-8 py-5">
+                                          <div className="font-bold text-zinc-900">{b.user?.name || b.user?.email}</div>
+                                          <div className="text-xs text-zinc-400">{b.resource?.name}</div>
+                                      </td>
+                                      <td className="px-8 py-5">
+                                          <div className="text-sm">{b.bookingDate}</div>
+                                          <div className="text-xs text-zinc-400">{b.timeRange}</div>
+                                      </td>
+                                      <td className="px-8 py-5"><StatusBadge status={b.status} /></td>
+                                      <td className="px-8 py-5 text-right">
+                                          {b.status === 'PENDING' && (
+                                              <div className="flex justify-end gap-2">
+                                                  <button
+                                                      onClick={() => handleApproveBooking(b.id)}
+                                                      className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white"
+                                                  >
+                                                      <Check size={16} />
+                                                  </button>
+                                                  <button
+                                                      onClick={() => setRejectDialog({ open: true, bookingId: b.id, reason: '' })}
+                                                      className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white"
+                                                  >
+                                                      <X size={16} />
+                                                  </button>
+                                              </div>
+                                          )}
+                                          {b.status === 'APPROVED' && <span className="text-xs text-emerald-600">Approved</span>}
+                                          {b.status === 'REJECTED' && <span className="text-xs text-red-600">Rejected</span>}
+                                          {b.status === 'CANCELLED' && <span className="text-xs text-zinc-500">Cancelled</span>}
+                                      </td>
+                                  </tr>
+                              ))}
+                      </tbody>
+                  </table>
+              </div>
+          )}
+
+          {/* Reject Dialog */}
+          <AnimatePresence>
+              {rejectDialog.open && (
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                      <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          onClick={() => setRejectDialog({ open: false, bookingId: null, reason: '' })}
+                          className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm"
+                      />
+                      <motion.div
+                          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                          className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+                      >
+                          <div className="p-8">
+                              <h3 className="text-xl font-black mb-4">Reject Booking</h3>
+                              <div className="space-y-4">
+                                  <div>
+                                      <label className="block text-xs font-black mb-1">Reason</label>
+                                      <textarea
+                                          rows={3}
+                                          className="w-full p-3 bg-zinc-50 border rounded-xl"
+                                          value={rejectDialog.reason}
+                                          onChange={(e) => setRejectDialog({ ...rejectDialog, reason: e.target.value })}
+                                          placeholder="Provide reason for rejection"
+                                      />
+                                  </div>
+                              </div>
+                              <div className="flex gap-3 mt-6">
+                                  <button
+                                      onClick={() => setRejectDialog({ open: false, bookingId: null, reason: '' })}
+                                      className="flex-1 py-3 bg-zinc-100 rounded-xl font-bold"
+                                  >
+                                      Cancel
+                                  </button>
+                                  <button
+                                      onClick={() => handleRejectBooking(rejectDialog.bookingId, rejectDialog.reason)}
+                                      className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold"
+                                  >
+                                      Confirm Reject
+                                  </button>
+                              </div>
+                          </div>
+                      </motion.div>
                   </div>
-                ) : <button className="p-2 text-zinc-400 hover:text-blue-600"><MoreVertical size={16} /></button>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              )}
+          </AnimatePresence>
       </div>
-    </div>
   );
 
   const renderTicketsPanel = () => (

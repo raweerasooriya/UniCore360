@@ -57,6 +57,33 @@ public class BookingService {
         return bookingRepository.save(booking);
     }
 
+    // Get all bookings (for admin)
+    public List<Booking> getAllBookings() {
+        return bookingRepository.findAllByOrderByBookingDateDesc(); // define this method in repository
+    }
+
+    // Approve a booking
+    public Booking approveBooking(Long id) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new RuntimeException("Only pending bookings can be approved");
+        }
+        booking.setStatus(BookingStatus.APPROVED);
+        return bookingRepository.save(booking);
+    }
+
+    // Reject a booking with reason
+    public Booking rejectBooking(Long id, String reason) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new RuntimeException("Only pending bookings can be rejected");
+        }
+        booking.setStatus(BookingStatus.REJECTED);
+        // Optional: add rejectionReason field to Booking entity and set it here
+        return bookingRepository.save(booking);
+    }
     private boolean timeRangeOverlap(String existing, String newRange) {
         try {
             String[] e = existing.split("-");
