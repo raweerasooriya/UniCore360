@@ -109,9 +109,9 @@ export default function UserDashboard() {
   const fetchUserData = async () => {
       setLoading(true);
       try {
-          const resourcesRes = await api.get('/api/resources');
+          const resourcesRes = await api.get('/resources');
           setResources(resourcesRes.data);
-          const bookingsRes = await api.get('/api/bookings/my');
+          const bookingsRes = await api.get('/bookings/my');
           setMyBookings(bookingsRes.data);
           setNotifications([
               { id: 1, title: 'Booking Approved', message: 'Your request for Conference Room A has been approved.', createdAt: new Date().toISOString(), read: false },
@@ -134,7 +134,7 @@ export default function UserDashboard() {
   const handleCancelBooking = async (id) => {
       if (window.confirm('Are you sure you want to cancel this booking?')) {
           try {
-              await api.put(`/api/bookings/${id}/cancel`);
+              await api.put(`/bookings/${id}/cancel`);
               await fetchUserData();
           } catch (err) {
               console.error('Cancel failed', err);
@@ -154,7 +154,7 @@ export default function UserDashboard() {
               attendees: bookingForm.attendees ? parseInt(bookingForm.attendees) : null
           };
           // To this (Ensure it matches the route defined in your Spring Boot/Express controller):
-          await api.post('/api/bookings', payload);
+          await api.post('/bookings', payload);
           await fetchUserData();
           setBookingDialog({ open: false, resource: null });
           setBookingForm({ date: '', purpose: '', attendees: '' });

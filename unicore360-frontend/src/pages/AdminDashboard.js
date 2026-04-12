@@ -132,10 +132,12 @@ export default function AdminDashboard() {
       }
   };
 
+  // Update these functions in AdminDashboard.js
   const fetchResources = async () => {
       setResourcesLoading(true);
       try {
-          const response = await api.get('/admin/resources');
+          // Updated Path
+          const response = await api.get('/admin/resources'); 
           setResources(response.data);
       } catch (err) {
           console.error('Failed to fetch resources', err);
@@ -145,35 +147,24 @@ export default function AdminDashboard() {
   };
 
   const createResource = async (resource) => {
-      try {
-          const response = await api.post('/admin/resources', resource);
-          await fetchResources();
-          return response.data;
-      } catch (err) {
-          console.error('Failed to create resource', err);
-          throw err;
-      }
+      // Updated Path
+      const response = await api.post('/admin/resources', resource);
+      await fetchResources();
+      return response.data;
   };
 
   const updateResource = async (id, resource) => {
-      try {
-          const response = await api.put(`/admin/resources/${id}`, resource);
-          await fetchResources();
-          return response.data;
-      } catch (err) {
-          console.error('Failed to update resource', err);
-          throw err;
-      }
+      // Updated Path
+      const response = await api.put(`/admin/resources/${id}`, resource);
+      await fetchResources();
+      return response.data;
   };
 
   const deleteResource = async (id) => {
       if (window.confirm('Are you sure you want to delete this resource?')) {
-          try {
-              await api.delete(`/admin/resources/${id}`);
-              await fetchResources();
-          } catch (err) {
-              console.error('Failed to delete resource', err);
-          }
+          // Updated Path
+          await api.delete(`/admin/resources/${id}`);
+          await fetchResources();
       }
   };
 

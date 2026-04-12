@@ -12,43 +12,37 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/resources")
 @RequiredArgsConstructor
 public class ResourceController {
 
     private final ResourceService resourceService;
 
-    // ==================== User endpoints (any authenticated user) ====================
-    @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/resources")
     public List<Resource> getActiveResources() {
-        // Return only ACTIVE resources for normal users
         return resourceService.getAllResources().stream()
                 .filter(r -> r.getStatus() == ResourceStatus.ACTIVE)
                 .collect(Collectors.toList());
     }
 
-    // ==================== Admin endpoints (ADMIN only) ====================
-    @GetMapping("/admin")
+    @GetMapping("/admin/resources")
     @PreAuthorize("hasRole('ADMIN')")
     public List<Resource> getAllResourcesForAdmin() {
-        // Return all resources (including OUT_OF_SERVICE) for admin
         return resourceService.getAllResources();
     }
 
-    @PostMapping("/admin")
+    @PostMapping("/admin/resources")
     @PreAuthorize("hasRole('ADMIN')")
     public Resource createResource(@RequestBody Resource resource) {
         return resourceService.createResource(resource);
     }
 
-    @PutMapping("/admin/{id}")
+    @PutMapping("/admin/resources/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public Resource updateResource(@PathVariable Long id, @RequestBody Resource resource) {
         return resourceService.updateResource(id, resource);
     }
 
-    @DeleteMapping("/admin/{id}")
+    @DeleteMapping("/admin/resources/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteResource(@PathVariable Long id) {
         resourceService.deleteResource(id);

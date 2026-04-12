@@ -23,52 +23,61 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider tokenProvider;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+
         try {
             String jwt = getJwtFromRequest(request);
 
-            // 1. Validate the token string and ensure it's not expired
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
 
-                // 2. Extract user details from the JWT claims
                 String email = tokenProvider.getEmailFromToken(jwt);
+
+                // 🔥 IMPORTANT: normalize role
                 String role = tokenProvider.getRoleFromToken(jwt);
+                role = role.replace("ROLE_", ""); // remove if already exists
+
+                String roleWithPrefix = "ROLE_" + role;
 
                 if (email != null) {
-                    // 3. Create the Authority list.
-                    // Spring Security expects "ROLE_USER" or "ROLE_ADMIN" for hasRole() checks.
-                    SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
 
-                    // 4. Create the Authentication object.
-                    // We set the principal as the 'email' (String).
-                    // This is what java.security.Principal will use for .getName()
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            email,
-                            null,
-                            Collections.singletonList(authority)
+                    SimpleGrantedAuthority authority =
+                            new SimpleGrantedAuthority(roleWithPrefix);
+
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    email,
+                                    null,
+                                    Collections.singletonList(authority)
+                            );
+
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
                     );
 
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                    // 5. Store the authentication in the Security Context for this request
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                    // DEBUG (keep for now)
+                    System.out.println("==== JWT AUTH SUCCESS ====");
+                    System.out.println("Email: " + email);
+                    System.out.println("Role: " + roleWithPrefix);
+                    System.out.println("==========================");
                 }
             }
+
         } catch (Exception ex) {
-            // Log the error but don't block the filter chain;
-            // unauthorized requests will be caught by SecurityConfig later.
-            logger.error("Could not set user authentication in security context", ex);
+            System.out.println("JWT ERROR: " + ex.getMessage());
         }
 
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Extracts the token from the "Authorization: Bearer <token>" header
-     */
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
+
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }
