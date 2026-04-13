@@ -14,7 +14,7 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
-    private final NotificationService notificationService;  // added
+    private final NotificationService notificationService;
 
     public List<Booking> getUserBookings(User user) {
         return bookingRepository.findByUserOrderByBookingDateDesc(user);
@@ -24,7 +24,6 @@ public class BookingService {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new RuntimeException("Resource not found"));
 
-        // Check for conflicting bookings
         boolean conflict = bookingRepository.findAll().stream()
                 .anyMatch(b -> b.getResource().getId().equals(resourceId)
                         && b.getBookingDate().equals(date)
@@ -42,7 +41,17 @@ public class BookingService {
         booking.setPurpose(purpose);
         booking.setExpectedAttendees(attendees);
         booking.setStatus(BookingStatus.PENDING);
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+
+        // Notify all admins about new booking
+        notificationService.notifyAllAdmins(
+                "New Booking Request",
+                "Booking #" + saved.getId() + " for " + resource.getName() + " by " + user.getName(),
+                NotificationType.BOOKING_UPDATE,
+                saved.getId()
+        );
+
+        return saved;
     }
 
     public Booking cancelBooking(Long bookingId, User user) {
@@ -57,11 +66,20 @@ public class BookingService {
         booking.setStatus(BookingStatus.CANCELLED);
         Booking saved = bookingRepository.save(booking);
 
-        // Notify user about cancellation
+        // Notify the user who cancelled
         notificationService.sendBookingNotification(user,
                 "Booking Cancelled",
                 "Your booking for " + booking.getResource().getName() + " on " + booking.getBookingDate() + " has been cancelled.",
                 booking.getId());
+
+        // Notify all admins
+        notificationService.notifyAllAdmins(
+                "Booking Cancelled",
+                "Booking #" + bookingId + " for " + booking.getResource().getName() + " cancelled by " + user.getName(),
+                NotificationType.BOOKING_UPDATE,
+                bookingId
+        );
+
         return saved;
     }
 
@@ -78,11 +96,20 @@ public class BookingService {
         booking.setStatus(BookingStatus.APPROVED);
         Booking saved = bookingRepository.save(booking);
 
-        // Notify the user who made the booking
+        // Notify the booking owner
         notificationService.sendBookingNotification(booking.getUser(),
                 "Booking Approved",
                 "Your booking for " + booking.getResource().getName() + " on " + booking.getBookingDate() + " has been approved.",
                 booking.getId());
+
+        // Notify all admins
+        notificationService.notifyAllAdmins(
+                "Booking Approved",
+                "Booking #" + id + " for " + booking.getResource().getName() + " approved",
+                NotificationType.BOOKING_UPDATE,
+                id
+        );
+
         return saved;
     }
 
@@ -93,14 +120,22 @@ public class BookingService {
             throw new RuntimeException("Only pending bookings can be rejected");
         }
         booking.setStatus(BookingStatus.REJECTED);
-        // Optionally store rejection reason in a separate field if you have one
         Booking saved = bookingRepository.save(booking);
 
-        // Notify the user who made the booking
+        // Notify the booking owner
         notificationService.sendBookingNotification(booking.getUser(),
                 "Booking Rejected",
                 "Your booking for " + booking.getResource().getName() + " on " + booking.getBookingDate() + " has been rejected. Reason: " + reason,
                 booking.getId());
+
+        // Notify all admins
+        notificationService.notifyAllAdmins(
+                "Booking Rejected",
+                "Booking #" + id + " for " + booking.getResource().getName() + " rejected. Reason: " + reason,
+                NotificationType.BOOKING_UPDATE,
+                id
+        );
+
         return saved;
     }
 

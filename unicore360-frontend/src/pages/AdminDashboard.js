@@ -48,9 +48,6 @@ const Logo = ({ className = "" }) => (
     </div>
   </div>
 );
-// AdminDashboard.js
-const storedId = localStorage.getItem('userId');
-const userId = storedId ? parseInt(storedId) : null;
 // ---------- StatCard ----------
 const StatCard = ({ label, value, icon: Icon, colorClass, trend }) => (
   <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm group hover:border-blue-600 transition-all">
@@ -106,7 +103,6 @@ const PriorityBadge = ({ priority }) => {
 // ---------- Main AdminDashboard ----------
 export default function AdminDashboard() {
   const [activeView, setActiveView] = useState('overview');
-  const [unreadCount, setUnreadCount] = useState(3);
   const [searchQuery, setSearchQuery] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editRoleDialog, setEditRoleDialog] = useState(null);
@@ -114,7 +110,11 @@ export default function AdminDashboard() {
   const [usersLoading, setUsersLoading] = useState(false);
   const navigate = useNavigate();
   const username  = localStorage.getItem('name') || 'Admin';
-  const userId = parseInt(localStorage.getItem('userId')) || null;
+  const storedUserId = localStorage.getItem('userId');
+  const userId = storedUserId !== null ? parseInt(storedUserId) : null;
+
+  console.log("Admin userId:", userId);
+  console.log("Raw localStorage userId:", localStorage.getItem("userId"));
   // Resources state
   const [resources, setResources] = useState([]);
   const [resourcesLoading, setResourcesLoading] = useState(false);
@@ -133,6 +133,7 @@ export default function AdminDashboard() {
   const [selectedTicketDetails, setSelectedTicketDetails] = useState(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  
 
   // Fetch resources when activeView === 'resources'
   useEffect(() => {
@@ -146,6 +147,12 @@ export default function AdminDashboard() {
           fetchAllBookings();
       }
   }, [activeView]);
+
+  useEffect(() => {
+    console.log("USER ID IN ADMIN:", userId);
+  }, [userId]);
+
+
 
   const fetchAllBookings = async () => {
       setBookingsLoading(true);
@@ -1072,6 +1079,7 @@ const renderTicketsPanel = () => (
   );
 
   // ---------- Main Return ----------
+  console.log('Admin userId:', userId, '| raw:', localStorage.getItem('userId'));
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col font-sans">
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-zinc-200">

@@ -19,5 +19,5 @@ public class NotificationPreference {
     private boolean bookingUpdates = true;
     private boolean ticketUpdates = true;
     private boolean comments = true;
-    private boolean systemNotifications = true;  // renamed from 'system'
+    private boolean systemNotifications = true;
 }

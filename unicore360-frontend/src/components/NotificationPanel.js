@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Settings, X, Mail, AlertCircle, MessageSquare, Calendar } from 'lucide-react';
+import { Bell, Check, Settings, AlertCircle, MessageSquare, Calendar } from 'lucide-react';
 import api from '../services/api';
 
 const getIcon = (type) => {
@@ -18,10 +18,13 @@ export default function NotificationPanel({ userId }) {
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [preferences, setPreferences] = useState(null);
   const panelRef = useRef(null);
+  const hasFetched = useRef(false);   // ← prevents double fetch on mount
 
   const fetchNotifications = async () => {
     try {
+      console.log(`Fetching notifications for userId: ${userId}`);
       const res = await api.get(`notifications/user/${userId}`);
+      console.log('Notifications response:', res.data);
       setNotifications(res.data);
       const unreadRes = await api.get(`notifications/unread-count?userId=${userId}`);
       setUnreadCount(unreadRes.data);
@@ -56,8 +59,14 @@ export default function NotificationPanel({ userId }) {
   };
 
   useEffect(() => {
+    if (!userId) return;
+    // Prevent duplicate initial calls in StrictMode / remounts
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
     fetchNotifications();
     fetchPreferences();
+
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [userId]);
@@ -72,6 +81,8 @@ export default function NotificationPanel({ userId }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  if (!userId) return null;
 
   return (
     <div className="relative" ref={panelRef}>

@@ -27,7 +27,7 @@ public class TicketService {
     private final TicketCommentRepository commentRepository;
     private final TicketAttachmentRepository attachmentRepository;
     private final UserRepository userRepository;
-    private final NotificationService notificationService;  // added
+    private final NotificationService notificationService;
 
     @Value("${ticket.upload.dir:uploads/tickets}")
     private String uploadDir;
@@ -75,8 +75,14 @@ public class TicketService {
             }
         }
 
-        // Notify admin? (optional) – but requirement only says users receive notifications.
-        // You could optionally notify assigned technician if any, but none yet.
+        // Notify all admins about new ticket
+        notificationService.notifyAllAdmins(
+                "New Ticket Created",
+                "Ticket #" + ticket.getId() + ": " + ticket.getTitle() + " created by " + user.getName(),
+                NotificationType.TICKET_UPDATE,
+                ticket.getId()
+        );
+
         return convertToDTO(ticket);
     }
 
@@ -92,17 +98,25 @@ public class TicketService {
         ticket.setAssignedTechnician(technician);
         ticket = ticketRepository.save(ticket);
 
-        // Notify the technician that they've been assigned
+        // Notify the technician
         notificationService.sendTicketNotification(technician,
                 "New Ticket Assigned",
                 "You have been assigned to ticket #" + ticketId + ": " + ticket.getTitle(),
                 ticketId);
 
-        // Also notify the ticket owner that a technician has been assigned
+        // Notify the ticket owner
         notificationService.sendTicketNotification(ticket.getUser(),
                 "Technician Assigned",
                 "A technician has been assigned to your ticket #" + ticketId,
                 ticketId);
+
+        // Notify all admins
+        notificationService.notifyAllAdmins(
+                "Technician Assigned",
+                "Ticket #" + ticketId + " assigned to " + technician.getName() + " by " + admin.getName(),
+                NotificationType.TICKET_UPDATE,
+                ticketId
+        );
 
         return convertToDTO(ticket);
     }
@@ -121,20 +135,27 @@ public class TicketService {
         ticket.setStatus(newStatus);
         ticket = ticketRepository.save(ticket);
 
-        // Notify the ticket owner about status change
+        // Notify the ticket owner
         notificationService.sendTicketNotification(ticket.getUser(),
                 "Ticket Status Updated",
                 "Your ticket #" + ticketId + " status changed from " + oldStatus + " to " + newStatus,
                 ticketId);
 
-        // If actor is technician, also notify the owner? Already done above.
-        // Optionally notify the assigned technician if status changed by admin.
+        // Notify the assigned technician if different from actor and not admin (already notified owner)
         if (actor.getRole() == Role.ADMIN && ticket.getAssignedTechnician() != null) {
             notificationService.sendTicketNotification(ticket.getAssignedTechnician(),
                     "Ticket Status Updated",
                     "Ticket #" + ticketId + " status changed to " + newStatus + " by admin.",
                     ticketId);
         }
+
+        // Notify all admins (useful for monitoring)
+        notificationService.notifyAllAdmins(
+                "Ticket Status Updated",
+                "Ticket #" + ticketId + " status changed from " + oldStatus + " to " + newStatus + " by " + actor.getName(),
+                NotificationType.TICKET_UPDATE,
+                ticketId
+        );
 
         return convertToDTO(ticket);
     }
@@ -147,10 +168,19 @@ public class TicketService {
         ticket.setRejectionReason(reason);
         ticket = ticketRepository.save(ticket);
 
+        // Notify the ticket owner
         notificationService.sendTicketNotification(ticket.getUser(),
                 "Ticket Rejected",
                 "Your ticket #" + ticketId + " has been rejected. Reason: " + reason,
                 ticketId);
+
+        // Notify all admins
+        notificationService.notifyAllAdmins(
+                "Ticket Rejected",
+                "Ticket #" + ticketId + " rejected by " + admin.getName() + ". Reason: " + reason,
+                NotificationType.TICKET_UPDATE,
+                ticketId
+        );
 
         return convertToDTO(ticket);
     }
@@ -194,7 +224,7 @@ public class TicketService {
         comment.setUser(user);
         comment = commentRepository.save(comment);
 
-        // Notify ticket owner if commenter is not owner
+        // Notify ticket owner if not the commenter
         if (!ticket.getUser().getId().equals(user.getId())) {
             notificationService.sendCommentNotification(ticket.getUser(),
                     "New comment on ticket #" + ticketId,
@@ -210,6 +240,14 @@ public class TicketService {
                     ticketId);
         }
 
+        // Notify all admins
+        notificationService.notifyAllAdmins(
+                "New Comment on Ticket",
+                "Ticket #" + ticketId + " – " + user.getName() + " commented: " + (text.length() > 80 ? text.substring(0, 80) + "..." : text),
+                NotificationType.COMMENT,
+                ticketId
+        );
+
         return convertToCommentDTO(comment);
     }
 
@@ -223,7 +261,7 @@ public class TicketService {
         commentRepository.delete(comment);
     }
 
-    // Helper conversion methods (ensure DTOs have @Builder)
+    // Helper conversion methods
     private TicketResponseDTO convertToDTO(Ticket ticket) {
         return TicketResponseDTO.builder()
                 .id(ticket.getId())
