@@ -26,7 +26,6 @@ public class TicketAdminController {
     @GetMapping
     public ResponseEntity<List<TicketResponseDTO>> getAllTickets(@AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
         User admin = userService.getUserByEmail(userDetails.getUsername());
         return ResponseEntity.ok(ticketService.getAllTickets(admin));
     }
@@ -36,7 +35,6 @@ public class TicketAdminController {
                                                               @RequestBody AssignTechnicianRequest request,
                                                               @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
         User admin = userService.getUserByEmail(userDetails.getUsername());
         return ResponseEntity.ok(ticketService.assignTechnician(id, request.getTechnicianId(), admin));
     }
@@ -46,7 +44,6 @@ public class TicketAdminController {
                                                           @RequestBody StatusUpdateRequest request,
                                                           @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
         User admin = userService.getUserByEmail(userDetails.getUsername());
         return ResponseEntity.ok(ticketService.updateStatus(id, request.getStatus(), admin));
     }
@@ -56,7 +53,6 @@ public class TicketAdminController {
                                                           @RequestBody RejectTicketRequest request,
                                                           @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
         User admin = userService.getUserByEmail(userDetails.getUsername());
         return ResponseEntity.ok(ticketService.rejectTicket(id, request.getReason(), admin));
     }
@@ -65,8 +61,14 @@ public class TicketAdminController {
     public ResponseEntity<TicketResponseDTO> getTicketById(@PathVariable Long id,
                                                            @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
         User admin = userService.getUserByEmail(userDetails.getUsername());
         return ResponseEntity.ok(ticketService.getTicketById(id, admin));
+    }
+
+    // NEW: Delete a ticket (admin only)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
+        ticketService.deleteTicket(id);
+        return ResponseEntity.ok().build();
     }
 }

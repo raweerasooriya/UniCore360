@@ -261,6 +261,15 @@ public class TicketService {
         commentRepository.delete(comment);
     }
 
+    // NEW: Delete a ticket and all its associated data (attachments, comments)
+    @Transactional
+    public void deleteTicket(Long ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+        // Cascade will remove attachments and comments automatically
+        ticketRepository.delete(ticket);
+    }
+
     // Helper conversion methods
     private TicketResponseDTO convertToDTO(Ticket ticket) {
         return TicketResponseDTO.builder()

@@ -390,6 +390,19 @@ export default function AdminDashboard() {
     }
   };
 
+  const deleteTicket = async (ticketId, title) => {
+    if (window.confirm(`Are you sure you want to delete ticket #${ticketId} - "${title}"? This action cannot be undone.`)) {
+      try {
+        await api.delete(`/admin/tickets/${ticketId}`);
+        await fetchTickets(); // refresh the list
+        alert('Ticket deleted successfully');
+      } catch (err) {
+        console.error('Failed to delete ticket', err);
+        alert('Could not delete ticket');
+      }
+    }
+  };
+
   const handleLogout = () => {
     localStorage.clear();
     navigate('/');
@@ -980,44 +993,60 @@ const renderTicketsPanel = () => (
                 <td className="px-8 py-5 text-sm">
                   {ticket.assignedTechnician?.name || 'Unassigned'}
                 </td>
-                <td className="px-8 py-5 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => fetchTicketDetails(ticket.id)}
-                      className="p-2 text-zinc-400 hover:text-blue-600"
-                      title="View Details"
-                    >
-                      <Eye size={16} />
-                    </button>
-                    {!ticket.assignedTechnician && (
+                  <td className="px-8 py-5 text-right">
+                    <div className="flex justify-end gap-2">
+                      {/* View Details button */}
                       <button
-                        onClick={() => setAssignDialog({ open: true, ticketId: ticket.id, technicianId: '' })}
-                        className="px-3 py-1 bg-blue-600 text-white rounded-xl text-xs font-bold"
+                        onClick={() => fetchTicketDetails(ticket.id)}
+                        className="p-2 text-zinc-400 hover:text-blue-600"
+                        title="View Details"
                       >
-                        Assign
+                        <Eye size={16} />
                       </button>
-                    )}
-                    {ticket.status !== 'REJECTED' && ticket.status !== 'CLOSED' && (
+
+                      {/* Assign button (only if no technician assigned) */}
+                      {!ticket.assignedTechnician && (
+                        <button
+                          onClick={() => setAssignDialog({ open: true, ticketId: ticket.id, technicianId: '' })}
+                          className="px-3 py-1 bg-blue-600 text-white rounded-xl text-xs font-bold"
+                        >
+                          Assign
+                        </button>
+                      )}
+
+                      {/* Update Status button (if not rejected/closed) */}
+                      {ticket.status !== 'REJECTED' && ticket.status !== 'CLOSED' && (
+                        <button
+                          onClick={() => setStatusDialog({ open: true, ticketId: ticket.id, newStatus: '' })}
+                          className="px-3 py-1 bg-amber-600 text-white rounded-xl text-xs font-bold"
+                        >
+                          Update Status
+                        </button>
+                      )}
+
+                      {/* Reject button (only for OPEN tickets) */}
+                      {ticket.status === 'OPEN' && (
+                        <button
+                          onClick={() => {
+                            const reason = prompt('Rejection reason:');
+                            if (reason) rejectTicket(ticket.id, reason);
+                          }}
+                          className="px-3 py-1 bg-red-600 text-white rounded-xl text-xs font-bold"
+                        >
+                          Reject
+                        </button>
+                      )}
+
+                      {/* DELETE button for all tickets */}
                       <button
-                        onClick={() => setStatusDialog({ open: true, ticketId: ticket.id, newStatus: '' })}
-                        className="px-3 py-1 bg-amber-600 text-white rounded-xl text-xs font-bold"
+                        onClick={() => deleteTicket(ticket.id, ticket.title)}
+                        className="p-2 bg-zinc-100 text-red-500 rounded-xl hover:bg-red-600 hover:text-white transition-colors"
+                        title="Delete Ticket"
                       >
-                        Update Status
+                        <Trash2 size={16} />
                       </button>
-                    )}
-                    {ticket.status === 'OPEN' && (
-                      <button
-                        onClick={() => {
-                          const reason = prompt('Rejection reason:');
-                          if (reason) rejectTicket(ticket.id, reason);
-                        }}
-                        className="px-3 py-1 bg-red-600 text-white rounded-xl text-xs font-bold"
-                      >
-                        Reject
-                      </button>
-                    )}
-                  </div>
-                </td>
+                    </div>
+                  </td>
               </tr>
             ))}
             {filteredTickets.length === 0 && (
