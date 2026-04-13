@@ -377,6 +377,19 @@ export default function AdminDashboard() {
       }
   };
 
+  const deleteBooking = async (id, resourceName) => {
+    if (window.confirm(`Are you sure you want to delete the booking for "${resourceName}"? This action cannot be undone.`)) {
+      try {
+        await api.delete(`/api/admin/bookings/${id}`);
+        await fetchAllBookings(); // refresh the list
+        alert('Booking deleted successfully');
+      } catch (err) {
+        console.error('Failed to delete booking', err);
+        alert('Could not delete booking');
+      }
+    }
+  };
+
   const handleLogout = () => {
     localStorage.clear();
     navigate('/');
@@ -821,27 +834,40 @@ export default function AdminDashboard() {
                                           <div className="text-xs text-zinc-400">{b.timeRange}</div>
                                       </td>
                                       <td className="px-8 py-5"><StatusBadge status={b.status} /></td>
-                                      <td className="px-8 py-5 text-right">
-                                          {b.status === 'PENDING' && (
-                                              <div className="flex justify-end gap-2">
-                                                  <button
-                                                      onClick={() => handleApproveBooking(b.id)}
-                                                      className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white"
-                                                  >
-                                                      <Check size={16} />
-                                                  </button>
-                                                  <button
-                                                      onClick={() => setRejectDialog({ open: true, bookingId: b.id, reason: '' })}
-                                                      className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white"
-                                                  >
-                                                      <X size={16} />
-                                                  </button>
-                                              </div>
-                                          )}
-                                          {b.status === 'APPROVED' && <span className="text-xs text-emerald-600">Approved</span>}
-                                          {b.status === 'REJECTED' && <span className="text-xs text-red-600">Rejected</span>}
-                                          {b.status === 'CANCELLED' && <span className="text-xs text-zinc-500">Cancelled</span>}
-                                      </td>
+                                        <td className="px-8 py-5 text-right">
+                                          <div className="flex justify-end gap-2">
+                                            {b.status === 'PENDING' && (
+                                              <>
+                                                <button
+                                                  onClick={() => handleApproveBooking(b.id)}
+                                                  className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white"
+                                                  title="Approve"
+                                                >
+                                                  <Check size={16} />
+                                                </button>
+                                                <button
+                                                  onClick={() => setRejectDialog({ open: true, bookingId: b.id, reason: '' })}
+                                                  className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white"
+                                                  title="Reject"
+                                                >
+                                                  <X size={16} />
+                                                </button>
+                                              </>
+                                            )}
+                                            {b.status === 'APPROVED' && <span className="text-xs text-emerald-600">Approved</span>}
+                                            {b.status === 'REJECTED' && <span className="text-xs text-red-600">Rejected</span>}
+                                            {b.status === 'CANCELLED' && <span className="text-xs text-zinc-500">Cancelled</span>}
+                                            
+                                            {/* Delete button for all bookings */}
+                                            <button
+                                              onClick={() => deleteBooking(b.id, b.resource?.name || 'this booking')}
+                                              className="p-2 bg-zinc-100 text-red-500 rounded-xl hover:bg-red-600 hover:text-white transition-colors"
+                                              title="Delete"
+                                            >
+                                              <Trash2 size={16} />
+                                            </button>
+                                          </div>
+                                        </td>
                                   </tr>
                               ))}
                       </tbody>

@@ -21,20 +21,13 @@ public class BookingController {
     private final BookingService bookingService;
     private final UserService userService;
 
-    /**
-     * Get bookings for the currently authenticated user
-     */
     @GetMapping("/my")
     public List<Booking> getMyBookings(Principal principal) {
-        // principal.getName() returns the email set by JwtAuthenticationFilter
         String email = principal.getName();
         User user = userService.getUserByEmail(email);
         return bookingService.getUserBookings(user);
     }
 
-    /**
-     * Create a new booking
-     */
     @PostMapping
     public ResponseEntity<?> createBooking(Principal principal,
                                            @RequestBody Map<String, Object> payload) {
@@ -42,7 +35,6 @@ public class BookingController {
             String email = principal.getName();
             User user = userService.getUserByEmail(email);
 
-            // Extract data from payload
             Long resourceId = Long.valueOf(payload.get("resourceId").toString());
             LocalDate date = LocalDate.parse(payload.get("date").toString());
             String timeRange = payload.get("timeRange").toString();
@@ -56,14 +48,10 @@ public class BookingController {
             return ResponseEntity.ok(booking);
 
         } catch (Exception e) {
-            // It's good practice to return a 400 Bad Request if the payload is malformed
             return ResponseEntity.badRequest().body(Map.of("message", "Booking failed: " + e.getMessage()));
         }
     }
 
-    /**
-     * Cancel an existing booking
-     */
     @PutMapping("/{id}/cancel")
     public ResponseEntity<?> cancelBooking(Principal principal,
                                            @PathVariable Long id) {

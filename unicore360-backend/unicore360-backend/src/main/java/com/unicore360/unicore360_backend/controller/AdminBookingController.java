@@ -1,6 +1,7 @@
 package com.unicore360.unicore360_backend.controller;
 
 import com.unicore360.unicore360_backend.model.Booking;
+import com.unicore360.unicore360_backend.repository.BookingRepository;
 import com.unicore360.unicore360_backend.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ import java.util.Map;
 public class AdminBookingController {
 
     private final BookingService bookingService;
+    private final BookingRepository bookingRepository;  // added for delete
 
     @GetMapping
     public List<Booking> getAllBookings() {
@@ -34,5 +36,14 @@ public class AdminBookingController {
         String reason = payload.get("reason");
         Booking booking = bookingService.rejectBooking(id, reason);
         return ResponseEntity.ok(booking);
+    }
+
+    // NEW: Delete a booking (admin only)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteBooking(@PathVariable Long id) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+        bookingRepository.delete(booking);
+        return ResponseEntity.ok().build();
     }
 }
