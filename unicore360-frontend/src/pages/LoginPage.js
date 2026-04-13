@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { 
   Building2, 
-  Lock, 
-  Mail, 
-  User, 
-  Wrench, 
+  CalendarDays, 
+  Ticket, 
+  ArrowRight, 
   ShieldCheck, 
-  ArrowRight,
+  CheckCircle2,
   GraduationCap,
   Cpu,
-  AlertCircle
+  Wrench
 } from 'lucide-react';
 
 const Logo = ({ className = "" }) => (
@@ -35,89 +34,77 @@ const Logo = ({ className = "" }) => (
   </div>
 );
 
-const RoleOption = ({ role, active, onClick, icon: Icon, colorClass }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-300 ${
-      active 
-        ? `${colorClass} border-transparent text-white shadow-lg scale-105` 
-        : 'bg-white border-zinc-100 text-zinc-400 hover:border-zinc-200 hover:bg-zinc-50'
-    }`}
-  >
-    <Icon size={24} />
-    <span className="text-xs font-bold uppercase tracking-wider">{role}</span>
-  </button>
-);
-
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState('USER');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showDemo, setShowDemo] = useState(false);
-  const navigate = useNavigate();
-
-  const roleCredentials = {
-    'USER': { username: 'user', password: 'user123', path: '/user-dashboard', color: 'bg-blue-700', icon: GraduationCap },
-    'TECHNICIAN': { username: 'tech', password: 'tech123', path: '/technician-dashboard', color: 'bg-amber-600', icon: Wrench },
-    'ADMIN': { username: 'admin', password: 'admin123', path: '/admin-dashboard', color: 'bg-zinc-900', icon: ShieldCheck }
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    const creds = roleCredentials[role];
-    
-    if (username === creds.username && password === creds.password) {
-      const token = btoa(`${username}:${password}`);
-      localStorage.setItem('token', token);
-      localStorage.setItem('username', username);
-      localStorage.setItem('role', role);
-      
-      // Navigate to the appropriate dashboard
-      navigate(creds.path);
-    } else {
-      setError(`Invalid credentials for ${role}. Try ${creds.username}/${creds.password}`);
-    }
-    
-    setLoading(false);
-  };
-
   const handleGoogleLogin = () => {
     window.location.href = 'http://localhost:8081/api/oauth2/authorization/google';
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Decoration */}
-      <div className="absolute top-0 left-0 w-full h-full -z-10 overflow-hidden">
-        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-100/50 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-amber-50/50 blur-[120px] rounded-full" />
-      </div>
+    <div className="min-h-screen bg-white flex">
+      {/* LEFT SIDE – Branding & Feature Highlights */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-blue-900 via-blue-800 to-amber-800 overflow-hidden">
+        {/* Decorative blobs */}
+        <div className="absolute top-0 left-0 w-full h-full opacity-30">
+          <div className="absolute top-20 left-10 w-64 h-64 bg-white rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-80 h-80 bg-amber-300 rounded-full blur-3xl" />
+        </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-xl grid lg:grid-cols-1 gap-0 bg-white rounded-[2.5rem] shadow-2xl shadow-zinc-200/50 border border-zinc-100 overflow-hidden"
-      >
-        <div className="p-8 md:p-12">
-          <div className="flex flex-col items-center text-center mb-10">
-            <Logo className="mb-6" />
-            <h2 className="text-3xl font-black text-zinc-900 tracking-tight mb-2">Welcome Back</h2>
-            <p className="text-zinc-500 font-medium">Smart Campus Operations Hub</p>
+        <div className="relative z-10 flex flex-col justify-between p-12 text-white w-full">
+          <Logo className="text-white" />
+
+          <div className="space-y-8">
+            <h1 className="text-5xl font-black tracking-tight leading-tight">
+              Smart Campus<br />
+              Operations Hub
+            </h1>
+            <p className="text-lg text-blue-100 max-w-md">
+              One platform to manage facilities, bookings, incident tickets, and real‑time notifications – all with role‑based access.
+            </p>
+
+            <div className="space-y-4 mt-8">
+              <div className="flex items-center gap-3 text-sm font-medium">
+                <Building2 size={20} className="text-amber-300" />
+                <span>Facilities & Asset Catalogue</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm font-medium">
+                <CalendarDays size={20} className="text-amber-300" />
+                <span>Booking Management with Conflict Checking</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm font-medium">
+                <Wrench size={20} className="text-amber-300" />
+                <span>Incident Ticketing (images, workflow)</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm font-medium">
+                <ShieldCheck size={20} className="text-amber-300" />
+                <span>Role‑Based Dashboards (User, Technician, Admin)</span>
+              </div>
+            </div>
           </div>
 
-          {/* Google Login */}
+          <div className="text-xs text-blue-200">
+            © 2026 UniCore 360 – Built for PAF IT3030
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT SIDE – Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-zinc-100 overflow-hidden p-8 md:p-10"
+        >
+          <div className="text-center mb-8">
+            <Logo className="justify-center mb-6" />
+            <h2 className="text-2xl font-black text-zinc-900">Welcome Back</h2>
+            <p className="text-zinc-500 text-sm mt-1">Sign in with your Google account</p>
+          </div>
+
+          {/* Google OAuth Button */}
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border border-zinc-200 rounded-2xl font-bold text-zinc-700 hover:bg-zinc-50 transition-all active:scale-[0.98] mb-8 group"
+            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border border-zinc-200 rounded-2xl font-bold text-zinc-700 hover:bg-zinc-50 transition-all active:scale-[0.98] shadow-sm"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -128,168 +115,14 @@ export default function LoginPage() {
             Sign in with Google
           </button>
 
-          <div className="relative mb-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-zinc-100"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase tracking-widest font-bold text-zinc-400">
-              <span className="bg-white px-4">Or use demo account</span>
-            </div>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-6">
-            {/* Role Selection */}
-            <div className="flex gap-3">
-              <RoleOption 
-                role="User" 
-                active={role === 'USER'} 
-                onClick={() => { setRole('USER'); setUsername('user'); setPassword('user123'); setError(''); }}
-                icon={GraduationCap}
-                colorClass="bg-blue-700"
-              />
-              <RoleOption 
-                role="Tech" 
-                active={role === 'TECHNICIAN'} 
-                onClick={() => { setRole('TECHNICIAN'); setUsername('tech'); setPassword('tech123'); setError(''); }}
-                icon={Wrench}
-                colorClass="bg-amber-600"
-              />
-              <RoleOption 
-                role="Admin" 
-                active={role === 'ADMIN'} 
-                onClick={() => { setRole('ADMIN'); setUsername('admin'); setPassword('admin123'); setError(''); }}
-                icon={ShieldCheck}
-                colorClass="bg-zinc-900"
-              />
-            </div>
-
-            <AnimatePresence mode="wait">
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-2xl flex items-center gap-3 text-sm font-medium"
-                >
-                  <AlertCircle size={18} className="shrink-0" />
-                  {error}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div className="space-y-4">
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-600 transition-colors">
-                  <User size={20} />
-                </div>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Username"
-                  className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all font-medium text-zinc-900"
-                  required
-                />
-              </div>
-
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-600 transition-colors">
-                  <Lock size={20} />
-                </div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
-                  className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all font-medium text-zinc-900"
-                  required
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-5 rounded-2xl font-bold text-white shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${roleCredentials[role].color} hover:brightness-110 shadow-zinc-200`}
-            >
-              {loading ? (
-                <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  Sign in as {role}
-                  <ArrowRight size={20} />
-                </>
-              )}
-            </button>
-          </form>
-          
-          {/* Demo Credentials Toggle Button */}
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setShowDemo(!showDemo)}
-              className="text-xs font-medium text-zinc-500 hover:text-blue-600 transition-colors underline-offset-2 hover:underline"
-            >
-              {showDemo ? "▼ Hide Demo Login" : "▶ Quick Demo Login"}
-            </button>
-          </div>
-
-          {/* Demo Credentials - Shown only when showDemo is true */}
-          {showDemo && (
-            <div className="mt-3 text-center animate-in fade-in duration-200">
-              <div className="flex flex-wrap justify-center gap-4 text-sm">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRole('USER');
-                    setUsername('user');
-                    setPassword('user123');
-                    setError('');
-                    setShowDemo(false); // optional: auto-close after selection
-                  }}
-                  className="text-blue-600 hover:text-blue-800 font-semibold underline-offset-2 hover:underline transition"
-                >
-                  User (user / user123)
-                </button>
-                <span className="text-zinc-300">•</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRole('TECHNICIAN');
-                    setUsername('tech');
-                    setPassword('tech123');
-                    setError('');
-                    setShowDemo(false);
-                  }}
-                  className="text-amber-600 hover:text-amber-800 font-semibold underline-offset-2 hover:underline transition"
-                >
-                  Technician (tech / tech123)
-                </button>
-                <span className="text-zinc-300">•</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRole('ADMIN');
-                    setUsername('admin');
-                    setPassword('admin123');
-                    setError('');
-                    setShowDemo(false);
-                  }}
-                  className="text-zinc-700 hover:text-zinc-900 font-semibold underline-offset-2 hover:underline transition"
-                >
-                  Admin (admin / admin123)
-                </button>
-              </div>
-            </div>
-          )}
-          <div className="mt-10 text-center">
-            <Link to="/" className="text-sm font-bold text-zinc-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-2">
+          <div className="mt-8 text-center">
+            <Link to="/" className="text-sm font-medium text-zinc-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-2">
               <ArrowRight size={16} className="rotate-180" />
               Back to Home
             </Link>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }
