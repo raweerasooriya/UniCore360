@@ -325,6 +325,19 @@ export default function AdminDashboard() {
     }
   };
 
+  const deleteUser = async (userId, userName) => {
+  if (window.confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+      try {
+        await api.delete(`/admin/users/${userId}`);
+        await fetchUsers(); // refresh the user list
+        alert('User deleted successfully');
+      } catch (err) {
+        console.error('Failed to delete user', err);
+        alert(err.response?.data || 'Could not delete user');
+      }
+    }
+  };
+
   // ---------- Handlers for Bookings, etc. ----------
   const handleApproveBooking = async (id) => {
       try {
@@ -593,8 +606,24 @@ export default function AdminDashboard() {
                   }`}>{u.role}</span></td>
                   <td className="px-8 py-5"><div className="text-xs text-zinc-500">{u.bookings || 0} Bookings • {u.tickets || 0} Tickets</div></td>
                   <td className="px-8 py-5 text-right">
-                    <button onClick={() => setEditRoleDialog({ user: u, open: true })} className="px-4 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-xl">Edit Role</button>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => setEditRoleDialog({ user: u, open: true })}
+                        className="px-3 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-xl"
+                      >
+                        Edit Role
+                      </button>
+                      {userId !== u.id && (
+                        <button
+                          onClick={() => deleteUser(u.id, u.name || u.email)}
+                          className="px-3 py-1 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
                   </td>
+                  
                 </tr>
               ))}
             </tbody>

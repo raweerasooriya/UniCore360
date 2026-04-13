@@ -7,6 +7,8 @@ import com.unicore360.unicore360_backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,15 +21,13 @@ import java.util.stream.Collectors;
 public class AdminUserController {
 
     private final UserRepository userRepository;
-    private final UserService userService;  // inject UserService
+    private final UserService userService;
 
-    // GET /admin/users - list all users
     @GetMapping("/users")
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    // PUT /admin/users/{email}/role - update user role
     @PutMapping("/users/{email}/role")
     public ResponseEntity<?> updateUserRole(@PathVariable String email, @RequestBody RoleUpdateRequest request) {
         User user = userRepository.findByEmail(email)
@@ -37,7 +37,6 @@ public class AdminUserController {
         return ResponseEntity.ok().build();
     }
 
-    // GET /admin/technicians - list all users with role TECHNICIAN
     @GetMapping("/technicians")
     public ResponseEntity<List<UserDTO>> getAllTechnicians() {
         List<User> technicians = userService.getUsersByRole(Role.TECHNICIAN);
@@ -47,14 +46,24 @@ public class AdminUserController {
         return ResponseEntity.ok(dtos);
     }
 
-    // Helper DTO for role update request
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long userId, @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userService.getUserByEmail(userDetails.getUsername());
+        if (currentUser.getId().equals(userId)) {
+            return ResponseEntity.badRequest().body("You cannot delete your own account");
+        }
+        User userToDelete = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        userRepository.delete(userToDelete);
+        return ResponseEntity.ok().build();
+    }
+
     static class RoleUpdateRequest {
         private Role role;
         public Role getRole() { return role; }
         public void setRole(Role role) { this.role = role; }
     }
 
-    // Helper DTO for technician list response
     static class UserDTO {
         private Long id;
         private String email;
@@ -68,7 +77,6 @@ public class AdminUserController {
             this.role = role;
         }
 
-        // Getters (required for JSON serialization)
         public Long getId() { return id; }
         public String getEmail() { return email; }
         public String getName() { return name; }
