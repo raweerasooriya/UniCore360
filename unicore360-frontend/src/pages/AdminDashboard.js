@@ -22,7 +22,8 @@ import {
   Clock,
   Eye,
   ShieldCheck,
-  LayoutDashboard
+  LayoutDashboard,
+  RefreshCw   
 } from 'lucide-react';
 import api from '../services/api';
 import NotificationPanel from '../components/NotificationPanel';
@@ -118,6 +119,7 @@ export default function AdminDashboard() {
   const [topResources, setTopResources] = useState([]);
   const [peakHours, setPeakHours] = useState([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [openMenuTicketId, setOpenMenuTicketId] = useState(null);
 
   console.log("Admin userId:", userId);
   console.log("Raw localStorage userId:", localStorage.getItem("userId"));
@@ -166,6 +168,12 @@ export default function AdminDashboard() {
   useEffect(() => {
     console.log("USER ID IN ADMIN:", userId);
   }, [userId]);
+
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuTicketId(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
 
 
@@ -999,15 +1007,15 @@ const renderTicketsPanel = () => (
       <div className="p-8 text-center">Loading tickets...</div>
     ) : (
       <div className="overflow-x-auto">
-        <table className="w-full text-left">
+        <table className="w-full table-auto min-w-[800px]">
           <thead className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
             <tr>
-              <th className="px-8 py-4">ID & Title</th>
-              <th className="px-8 py-4">Reported By</th>
-              <th className="px-8 py-4">Priority</th>
-              <th className="px-8 py-4">Status</th>
-              <th className="px-8 py-4">Assigned To</th>
-              <th className="px-8 py-4 text-right">Actions</th>
+              <th className="px-8 py-4 w-[30%]">ID & Title</th>
+              <th className="px-8 py-4 w-[20%]">Reported By</th>
+              <th className="px-8 py-4 w-[12%]">Priority</th>
+              <th className="px-8 py-4 w-[12%]">Status</th>
+              <th className="px-8 py-4 w-[16%]">Assigned To</th>
+              <th className="px-8 py-4 w-[10%] text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -1029,60 +1037,76 @@ const renderTicketsPanel = () => (
                 <td className="px-8 py-5 text-sm">
                   {ticket.assignedTechnician?.name || 'Unassigned'}
                 </td>
-                  <td className="px-8 py-5 text-right">
-                    <div className="flex justify-end gap-2">
-                      {/* View Details button */}
-                      <button
-                        onClick={() => fetchTicketDetails(ticket.id)}
-                        className="p-2 text-zinc-400 hover:text-blue-600"
-                        title="View Details"
-                      >
-                        <Eye size={16} />
-                      </button>
-
-                      {/* Assign button (only if no technician assigned) */}
-                      {!ticket.assignedTechnician && (
-                        <button
-                          onClick={() => setAssignDialog({ open: true, ticketId: ticket.id, technicianId: '' })}
-                          className="px-3 py-1 bg-blue-600 text-white rounded-xl text-xs font-bold"
-                        >
-                          Assign
-                        </button>
-                      )}
-
-                      {/* Update Status button (if not rejected/closed) */}
-                      {ticket.status !== 'REJECTED' && ticket.status !== 'CLOSED' && (
-                        <button
-                          onClick={() => setStatusDialog({ open: true, ticketId: ticket.id, newStatus: '' })}
-                          className="px-3 py-1 bg-amber-600 text-white rounded-xl text-xs font-bold"
-                        >
-                          Update Status
-                        </button>
-                      )}
-
-                      {/* Reject button (only for OPEN tickets) */}
-                      {ticket.status === 'OPEN' && (
+                <td className="px-8 py-5 text-right relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuTicketId(openMenuTicketId === ticket.id ? null : ticket.id);
+                    }}
+                    className="p-2 text-zinc-400 hover:text-zinc-600 rounded-full hover:bg-zinc-100 transition-colors"
+                  >
+                    <MoreVertical size={18} />
+                  </button>
+                  {openMenuTicketId === ticket.id && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-zinc-200 z-20 overflow-hidden">
+                      <div className="py-1">
                         <button
                           onClick={() => {
-                            const reason = prompt('Rejection reason:');
-                            if (reason) rejectTicket(ticket.id, reason);
+                            fetchTicketDetails(ticket.id);
+                            setOpenMenuTicketId(null);
                           }}
-                          className="px-3 py-1 bg-red-600 text-white rounded-xl text-xs font-bold"
+                          className="w-full text-left px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 flex items-center gap-2"
                         >
-                          Reject
+                          <Eye size={14} /> View Details
                         </button>
-                      )}
-
-                      {/* DELETE button for all tickets */}
-                      <button
-                        onClick={() => deleteTicket(ticket.id, ticket.title)}
-                        className="p-2 bg-zinc-100 text-red-500 rounded-xl hover:bg-red-600 hover:text-white transition-colors"
-                        title="Delete Ticket"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                        {!ticket.assignedTechnician && (
+                          <button
+                            onClick={() => {
+                              setAssignDialog({ open: true, ticketId: ticket.id, technicianId: '' });
+                              setOpenMenuTicketId(null);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 flex items-center gap-2"
+                          >
+                            <UserPlus size={14} /> Assign Technician
+                          </button>
+                        )}
+                        {ticket.status !== 'REJECTED' && ticket.status !== 'CLOSED' && (
+                          <button
+                            onClick={() => {
+                              setStatusDialog({ open: true, ticketId: ticket.id, newStatus: '' });
+                              setOpenMenuTicketId(null);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 flex items-center gap-2"
+                          >
+                            <RefreshCw size={14} /> Update Status
+                          </button>
+                        )}
+                        {ticket.status === 'OPEN' && (
+                          <button
+                            onClick={() => {
+                              const reason = prompt('Rejection reason:');
+                              if (reason) rejectTicket(ticket.id, reason);
+                              setOpenMenuTicketId(null);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                          >
+                            <X size={14} /> Reject Ticket
+                          </button>
+                        )}
+                        <hr className="my-1 border-zinc-100" />
+                        <button
+                          onClick={() => {
+                            deleteTicket(ticket.id, ticket.title);
+                            setOpenMenuTicketId(null);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        >
+                          <Trash2 size={14} /> Delete Ticket
+                        </button>
+                      </div>
                     </div>
-                  </td>
+                  )}
+                </td>
               </tr>
             ))}
             {filteredTickets.length === 0 && (
