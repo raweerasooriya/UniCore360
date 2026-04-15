@@ -1226,18 +1226,24 @@ const renderTicketsPanel = () => (
                 <div><span className="font-bold">Status:</span> <StatusBadge status={selectedTicketDetails.status} /></div>
                 <div><span className="font-bold">Reported by:</span> {selectedTicketDetails.user?.name} ({selectedTicketDetails.user?.email})</div>
                 <div><span className="font-bold">Assigned to:</span> {selectedTicketDetails.assignedTechnician?.name || 'Unassigned'}</div>
-                {selectedTicketDetails.attachments?.length > 0 && (
-                  <div>
-                    <span className="font-bold">Attachments:</span>
-                    <div className="flex gap-2 mt-2">
-                      {selectedTicketDetails.attachments.map((att, idx) => (
-                        <a key={idx} href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-sm">
-                          {att.fileName}
-                        </a>
-                      ))}
+                  {selectedTicketDetails.attachments?.length > 0 && (
+                    <div>
+                      <span className="font-bold">Attachments:</span>
+                      <div className="flex gap-2 mt-2">
+                        {selectedTicketDetails.attachments.map((att, idx) => (
+                          <a
+                            key={idx}
+                            href={`http://localhost:8081/api${att.fileUrl}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 underline text-sm"
+                          >
+                            {att.fileName}
+                          </a>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
                 <div>
                   <span className="font-bold">Comments:</span>
                   {selectedTicketDetails.comments?.length ? (

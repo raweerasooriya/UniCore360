@@ -625,9 +625,12 @@ export default function UserDashboard() {
                 <div><span className="font-bold">Priority:</span> <PriorityBadge priority={selectedTicket.priority} /></div>
                 <div><span className="font-bold">Status:</span> <StatusBadge status={selectedTicket.status} /></div>
                 {selectedTicket.assignedTechnician && <div><span className="font-bold">Assigned To:</span> {selectedTicket.assignedTechnician.name}</div>}
-                {selectedTicket.attachments?.length > 0 && (
-                  <div><span className="font-bold">Attachments:</span> 
-                  {selectedTicket.attachments.map((att, i) => <a key={i} href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="block text-blue-600 underline">📎 {att.fileName}</a>)}</div>
+                  {selectedTicket.attachments?.length > 0 && (
+                    <div><span className="font-bold">Attachments:</span> {selectedTicket.attachments.map((att, i) => (
+                      <a key={i} href={`http://localhost:8081/api${att.fileUrl}`} target="_blank" rel="noopener noreferrer" className="block text-blue-600 underline">
+                        📎 {att.fileName}
+                      </a>
+                    ))}</div>
                   )}
                 <div className="mt-6">
                   <h4 className="font-bold mb-2">Comments</h4>

@@ -406,18 +406,13 @@ export default function TechnicianDashboard() {
                   <div><span className="font-bold">Priority:</span> <PriorityBadge priority={selectedTicket.priority} /></div>
                   <div><span className="font-bold">Status:</span> <StatusBadge status={selectedTicket.status} /></div>
                   {selectedTicket.user && <div><span className="font-bold">Reported by:</span> {selectedTicket.user.name} ({selectedTicket.user.email})</div>}
-                  {selectedTicket.attachments?.length > 0 && (
-                    <div>
-                      <span className="font-bold">Attachments:</span>
-                      <div className="flex gap-2 mt-2 flex-wrap">
-                        {selectedTicket.attachments.map((att, idx) => (
-                          <a key={idx} href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-sm">
-                            📎 {att.fileName}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    {selectedTicket.attachments?.length > 0 && (
+                      <div><span className="font-bold">Attachments:</span> {selectedTicket.attachments.map((att, i) => (
+                        <a key={i} href={`http://localhost:8081/api${att.fileUrl}`} target="_blank" rel="noopener noreferrer" className="block text-blue-600 underline">
+                          📎 {att.fileName}
+                        </a>
+                      ))}</div>
+                    )}
                   <div>
                     <span className="font-bold">Comments</span>
                     <div className="space-y-2 max-h-60 overflow-y-auto mb-4">

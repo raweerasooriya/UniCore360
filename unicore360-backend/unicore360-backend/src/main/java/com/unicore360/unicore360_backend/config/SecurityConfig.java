@@ -44,19 +44,12 @@ public class SecurityConfig {
                         })
                 )
                 .authorizeHttpRequests(authz -> authz
-
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // public endpoints
                         .requestMatchers("/", "/public/**", "/oauth2/**", "/api/public/**").permitAll()
-
-                        // 🔥 FORCE AUTH for bookings
+                        .requestMatchers("/uploads/**", "/api/uploads/**").permitAll()  // ✅ place early
                         .requestMatchers("/api/bookings/**").authenticated()
-
-                        // admin only
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/notifications/**").authenticated()
-                        // everything else
                         .anyRequest().authenticated()
                 )
 
