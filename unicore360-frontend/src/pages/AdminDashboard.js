@@ -514,25 +514,34 @@ export default function AdminDashboard() {
       };
 
       return (
-          <div className="bg-white rounded-[2rem] border border-zinc-200 overflow-hidden shadow-sm">
-              {/* Header with search/filter and Add button */}
-              <div className="px-8 py-6 border-b border-zinc-100 flex flex-wrap gap-4 items-center justify-between">
-                  <h2 className="text-xl font-black text-zinc-900 flex items-center gap-2">
-                      <Building2 size={20} className="text-blue-600" />
-                      Resources Management
-                  </h2>
-                  <div className="flex flex-wrap gap-2">
+          <div className="bg-white rounded-2xl overflow-hidden border border-zinc-200" style={{ boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 4px 12px -2px rgba(0,0,0,0.06)' }}>
+
+              {/* Top accent line */}
+              <div className="h-[3px] w-full bg-gradient-to-r from-zinc-900 via-zinc-500 to-zinc-300" />
+
+              {/* Header */}
+              <div className="px-7 py-5 border-b border-zinc-100 flex flex-wrap gap-3 items-center justify-between">
+                  <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center shrink-0" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
+                          <Building2 size={15} className="text-white" />
+                      </div>
+                      <div>
+                          <h2 className="text-[15px] font-bold text-zinc-900 tracking-tight leading-tight">Resources Management</h2>
+                          <p className="text-[11px] text-zinc-400 font-medium leading-tight">Manage all bookable campus assets</p>
+                      </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
                       <input
                           type="text"
-                          placeholder="Name"
+                          placeholder="Search name..."
                           value={searchFilters.name}
                           onChange={(e) => setSearchFilters({...searchFilters, name: e.target.value})}
-                          className="px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs w-32"
+                          className="h-8 px-3 bg-zinc-50 border border-zinc-200 rounded-lg text-[12px] text-zinc-700 placeholder-zinc-400 outline-none w-28 focus:border-zinc-400 focus:bg-white transition-colors"
                       />
                       <select
                           value={searchFilters.type}
                           onChange={(e) => setSearchFilters({...searchFilters, type: e.target.value})}
-                          className="px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs"
+                          className="h-8 px-3 bg-zinc-50 border border-zinc-200 rounded-lg text-[12px] text-zinc-700 outline-none focus:border-zinc-400 focus:bg-white transition-colors cursor-pointer"
                       >
                           <option value="">All Types</option>
                           <option value="ROOM">Room</option>
@@ -541,15 +550,15 @@ export default function AdminDashboard() {
                       </select>
                       <input
                           type="text"
-                          placeholder="Location"
+                          placeholder="Location..."
                           value={searchFilters.location}
                           onChange={(e) => setSearchFilters({...searchFilters, location: e.target.value})}
-                          className="px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs w-32"
+                          className="h-8 px-3 bg-zinc-50 border border-zinc-200 rounded-lg text-[12px] text-zinc-700 placeholder-zinc-400 outline-none w-28 focus:border-zinc-400 focus:bg-white transition-colors"
                       />
                       <select
                           value={searchFilters.status}
                           onChange={(e) => setSearchFilters({...searchFilters, status: e.target.value})}
-                          className="px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs"
+                          className="h-8 px-3 bg-zinc-50 border border-zinc-200 rounded-lg text-[12px] text-zinc-700 outline-none focus:border-zinc-400 focus:bg-white transition-colors cursor-pointer"
                       >
                           <option value="">All Status</option>
                           <option value="ACTIVE">Active</option>
@@ -557,46 +566,66 @@ export default function AdminDashboard() {
                       </select>
                       <button
                           onClick={openCreateDialog}
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700"
+                          className="h-8 flex items-center gap-1.5 px-3.5 bg-zinc-900 text-white rounded-lg text-[12px] font-semibold hover:bg-zinc-800 active:scale-[0.97] transition-all duration-150"
+                          style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.08)' }}
                       >
-                          <Plus size={16} /> Add Resource
+                          <Plus size={13} /> Add Resource
                       </button>
                   </div>
               </div>
+
+              {/* Table */}
               {resourcesLoading ? (
-                  <div className="p-8 text-center">Loading resources...</div>
+                  <div className="p-10 text-center text-[13px] text-zinc-400 font-medium">Loading resources...</div>
               ) : (
                   <div className="overflow-x-auto">
                       <table className="w-full text-left">
-                          <thead className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
-                              <tr>
-                                  <th className="px-8 py-4">Name & Type</th>
-                                  <th className="px-8 py-4">Location</th>
-                                  <th className="px-8 py-4">Capacity</th>
-                                  <th className="px-8 py-4">Status</th>
-                                  <th className="px-8 py-4 text-right">Actions</th>
+                          <thead>
+                              <tr className="border-b border-zinc-100">
+                                  <th className="px-7 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Name & Type</th>
+                                  <th className="px-7 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Location</th>
+                                  <th className="px-7 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Capacity</th>
+                                  <th className="px-7 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Status</th>
+                                  <th className="px-7 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-right">Actions</th>
                               </tr>
                           </thead>
-                          <tbody className="divide-y divide-zinc-100">
+                          <tbody>
                               {filteredResources.map((r) => (
-                                  <tr key={r.id} className="hover:bg-zinc-50/50 transition-colors">
-                                      <td className="px-8 py-5">
-                                          <div className="font-bold text-zinc-900">{r.name}</div>
-                                          <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">{r.type}</div>
+                                  <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/60 transition-colors group">
+                                      <td className="px-7 py-4">
+                                          <div className="text-[13.5px] font-semibold text-zinc-900">{r.name}</div>
+                                          <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mt-0.5">{r.type}</div>
                                       </td>
-                                      <td className="px-8 py-5 text-sm text-zinc-500 font-medium">{r.location}</td>
-                                      <td className="px-8 py-5 text-sm text-zinc-500 font-medium">{r.capacity || '-'}</td>
-                                      <td className="px-8 py-5"><StatusBadge status={r.status} /></td>
-                                      <td className="px-8 py-5 text-right">
-                                          <div className="flex justify-end gap-2">
-                                              <button onClick={() => openEditDialog(r)} className="p-2 text-zinc-400 hover:text-blue-600 transition-colors"><Edit2 size={16} /></button>
-                                              <button onClick={() => deleteResource(r.id)} className="p-2 text-zinc-400 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                                      <td className="px-7 py-4 text-[13px] text-zinc-500 font-medium">{r.location}</td>
+                                      <td className="px-7 py-4 text-[13px] text-zinc-500 font-medium">{r.capacity || <span className="text-zinc-300">—</span>}</td>
+                                      <td className="px-7 py-4"><StatusBadge status={r.status} /></td>
+                                      <td className="px-7 py-4 text-right">
+                                          <div className="flex justify-end gap-1.5">
+                                              <button
+                                                  onClick={() => openEditDialog(r)}
+                                                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 text-zinc-400 hover:text-zinc-900 hover:border-zinc-400 hover:bg-white transition-all duration-150"
+                                                  title="Edit"
+                                              >
+                                                  <Edit2 size={13} />
+                                              </button>
+                                              <button
+                                                  onClick={() => deleteResource(r.id)}
+                                                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 text-zinc-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all duration-150"
+                                                  title="Delete"
+                                              >
+                                                  <Trash2 size={13} />
+                                              </button>
                                           </div>
                                       </td>
                                   </tr>
                               ))}
                               {filteredResources.length === 0 && (
-                                  <tr><td colSpan="5" className="px-8 py-12 text-center text-zinc-400">No resources found</td></tr>
+                                  <tr>
+                                      <td colSpan="5" className="px-7 py-14 text-center">
+                                          <div className="text-[13px] text-zinc-400 font-medium">No resources found</div>
+                                          <div className="text-[11px] text-zinc-300 mt-1">Try adjusting your filters</div>
+                                      </td>
+                                  </tr>
                               )}
                           </tbody>
                       </table>
