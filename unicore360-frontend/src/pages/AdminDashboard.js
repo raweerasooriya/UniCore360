@@ -1088,8 +1088,8 @@ export default function AdminDashboard() {
   );
 
 const renderTicketsPanel = () => (
-  <div className="bg-white rounded-[2rem] border border-zinc-200 overflow-hidden shadow-sm">
-    <div className="px-8 py-6 flex justify-between items-center border-b border-zinc-100">
+  <div className="bg-blue-50 rounded-[2rem] border border-blue-200 overflow-hidden shadow-sm">
+    <div className="px-8 py-6 flex justify-between items-center border-b border-blue-100">
       <div className="flex items-center gap-2">
         <Ticket size={20} className="text-blue-600" />
         <h2 className="text-xl font-black text-zinc-900">Incident Tickets</h2>
@@ -1101,7 +1101,7 @@ const renderTicketsPanel = () => (
           placeholder="Search tickets..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-100 rounded-full text-xs w-64"
+          className="pl-9 pr-4 py-2 bg-white border border-blue-100 rounded-full text-xs w-64"
         />
       </div>
     </div>
@@ -1110,7 +1110,7 @@ const renderTicketsPanel = () => (
     ) : (
       <div className="overflow-x-auto">
         <table className="w-full table-auto min-w-[800px]">
-          <thead className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
+          <thead className="bg-blue-100/70 text-blue-800 text-[10px] font-black uppercase tracking-widest">
             <tr>
               <th className="px-8 py-4 w-[30%]">ID & Title</th>
               <th className="px-8 py-4 w-[20%]">Reported By</th>
