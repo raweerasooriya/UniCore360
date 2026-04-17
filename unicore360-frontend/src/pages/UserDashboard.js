@@ -394,11 +394,61 @@ export default function UserDashboard() {
   );
 
   // ---------- Browse & Book View ----------
-  const renderBrowseBook = () => (
-    <div className="bg-white rounded-[2rem] border border-zinc-200 overflow-hidden shadow-sm">
-      <div className="px-8 py-6 border-b border-zinc-100 flex items-center justify-between">
-        <h2 className="text-xl font-black text-zinc-900 flex items-center gap-2"><Building2 size={20} className="text-blue-600" /> Available Resources</h2>
-        <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} /><input type="text" placeholder="Search..." className="pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-100 rounded-full text-xs outline-none focus:ring-2 focus:ring-blue-600/10" /></div>
+  const renderBrowseBook = () => {
+    const filteredResources = resources.filter(r => {
+      const matchName = !resourceFilters.name || r.name.toLowerCase().includes(resourceFilters.name.toLowerCase());
+      const matchType = !resourceFilters.type || r.type === resourceFilters.type;
+      const matchLocation = !resourceFilters.location || r.location.toLowerCase().includes(resourceFilters.location.toLowerCase());
+      const matchStatus = !resourceFilters.status || r.status === resourceFilters.status;
+      return matchName && matchType && matchLocation && matchStatus;
+    });
+
+    return (
+    <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)' }}>
+      {/* Header */}
+      <div className="px-6 py-4 flex items-center justify-between border-b border-zinc-100">
+        <div className="flex items-center gap-2.5">
+          <Building2 size={16} className="text-zinc-400" />
+          <h2 className="text-sm font-semibold text-zinc-900 tracking-tight">Available Resources</h2>
+          <span className="text-xs text-zinc-400 font-medium">({filteredResources.length})</span>
+        </div>
+      </div>
+
+      {/* Filter bar */}
+      <div className="px-6 py-3 flex flex-wrap gap-2 border-b border-zinc-100 bg-zinc-50/50">
+        <input
+          type="text"
+          placeholder="Name"
+          value={resourceFilters.name}
+          onChange={(e) => setResourceFilters({...resourceFilters, name: e.target.value})}
+          className="h-7 px-2.5 bg-white border border-zinc-200 rounded-md text-xs text-zinc-700 placeholder-zinc-400 outline-none w-24 transition-all duration-200 hover:border-zinc-400 focus:border-zinc-500 focus:shadow-sm"
+        />
+        <select
+          value={resourceFilters.type}
+          onChange={(e) => setResourceFilters({...resourceFilters, type: e.target.value})}
+          className="h-7 px-2.5 bg-white border border-zinc-200 rounded-md text-xs text-zinc-700 outline-none transition-all duration-200 hover:border-zinc-400 focus:border-zinc-500 cursor-pointer"
+        >
+          <option value="">All Types</option>
+          <option value="ROOM">Room</option>
+          <option value="LAB">Lab</option>
+          <option value="EQUIPMENT">Equipment</option>
+        </select>
+        <input
+          type="text"
+          placeholder="Location"
+          value={resourceFilters.location}
+          onChange={(e) => setResourceFilters({...resourceFilters, location: e.target.value})}
+          className="h-7 px-2.5 bg-white border border-zinc-200 rounded-md text-xs text-zinc-700 placeholder-zinc-400 outline-none w-24 transition-all duration-200 hover:border-zinc-400 focus:border-zinc-500 focus:shadow-sm"
+        />
+        <select
+          value={resourceFilters.status}
+          onChange={(e) => setResourceFilters({...resourceFilters, status: e.target.value})}
+          className="h-7 px-2.5 bg-white border border-zinc-200 rounded-md text-xs text-zinc-700 outline-none transition-all duration-200 hover:border-zinc-400 focus:border-zinc-500 cursor-pointer"
+        >
+          <option value="">All Status</option>
+          <option value="ACTIVE">Active</option>
+          <option value="OUT_OF_SERVICE">Out of Service</option>
+        </select>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left">
@@ -455,6 +505,7 @@ export default function UserDashboard() {
       </AnimatePresence>
     </div>
   );
+  };
 
   // ---------- My Bookings View ----------
   const renderMyBookings = () => (
