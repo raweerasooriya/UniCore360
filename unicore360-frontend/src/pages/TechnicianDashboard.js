@@ -295,8 +295,8 @@ export default function TechnicianDashboard() {
 
   const renderTicketsPanel = () => (
     <div className="space-y-8">
-      <div className="bg-white rounded-[2rem] border border-zinc-200 overflow-hidden shadow-sm">
-        <div className="px-8 py-6 border-b border-zinc-100 flex items-center justify-between">
+      <div className="bg-amber-50 rounded-[2rem] border border-amber-200 overflow-hidden shadow-sm">
+        <div className="px-8 py-6 border-b border-amber-100 flex items-center justify-between">
           <h2 className="text-xl font-black text-zinc-900 flex items-center gap-2">
             <Ticket size={20} className="text-amber-600" />
             My Assigned Tickets
@@ -312,7 +312,7 @@ export default function TechnicianDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest">
+                <tr className="bg-amber-100/70 text-amber-800 text-[10px] font-black uppercase tracking-widest">
                   <th className="px-8 py-4">ID & Title</th>
                   <th className="px-8 py-4">Priority</th>
                   <th className="px-8 py-4">Location</th>
