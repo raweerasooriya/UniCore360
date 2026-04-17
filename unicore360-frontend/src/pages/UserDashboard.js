@@ -452,18 +452,44 @@ export default function UserDashboard() {
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left">
-          <thead className="bg-zinc-50/50 text-zinc-400 text-[10px] font-black uppercase tracking-widest"><tr><th className="px-8 py-4">Name & Type</th><th className="px-8 py-4">Details</th><th className="px-8 py-4">Status</th><th className="px-8 py-4 text-right">Action</th></tr></thead>
-          <tbody className="divide-y divide-zinc-100">
-            {resources.map((r) => (
-              <tr key={r.id} className="hover:bg-zinc-50/50">
-                <td className="px-8 py-5"><div className="font-bold">{r.name}</div><div className="text-[10px] text-zinc-400 uppercase">{r.type}</div></td>
-                <td className="px-8 py-5"><div className="flex items-center gap-4 text-sm"><MapPin size={14} /> {r.location} {r.capacity && <><Users size={14} /> {r.capacity}</>}</div></td>
-                <td className="px-8 py-5"><StatusBadge status={r.status} /></td>
-                <td className="px-8 py-5 text-right">
-                  <button onClick={() => setBookingDialog({ open: true, resource: r })} disabled={r.status !== 'ACTIVE'} className={`px-4 py-2 rounded-xl text-xs font-bold ${r.status === 'ACTIVE' ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'}`}>Book Now</button>
+          <thead>
+            <tr className="border-b border-zinc-100">
+              <th className="px-6 py-3 text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">Name & Type</th>
+              <th className="px-6 py-3 text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">Location</th>
+              <th className="px-6 py-3 text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">Capacity</th>
+              <th className="px-6 py-3 text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">Status</th>
+              <th className="px-6 py-3 text-[10px] font-semibold text-zinc-400 uppercase tracking-widest text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-50">
+            {filteredResources.map((r) => (
+              <tr key={r.id} className="group transition-all duration-200 hover:bg-zinc-50 hover:shadow-[inset_3px_0_0_0_#18181b]">
+                <td className="px-6 py-3.5">
+                  <div className="text-sm font-semibold text-zinc-900 transition-all duration-200 group-hover:translate-x-0.5">{r.name}</div>
+                  <div className="text-[10px] text-zinc-400 uppercase tracking-wider mt-0.5">{r.type}</div>
+                </td>
+                <td className="px-6 py-3.5 text-xs text-zinc-500 transition-all duration-200 group-hover:text-zinc-700">{r.location}</td>
+                <td className="px-6 py-3.5 text-xs text-zinc-500 transition-all duration-200 group-hover:text-zinc-700">{r.capacity || <span className="text-zinc-300">—</span>}</td>
+                <td className="px-6 py-3.5">
+                  <div className="transition-transform duration-200 group-hover:scale-105 inline-block">
+                    <StatusBadge status={r.status} />
+                  </div>
+                </td>
+                <td className="px-6 py-3.5 text-right">
+                  <button
+                    onClick={() => setBookingDialog({ open: true, resource: r })}
+                    disabled={r.status !== 'ACTIVE'}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${r.status === 'ACTIVE' ? 'bg-zinc-900 text-white hover:bg-zinc-700 hover:scale-105 hover:shadow-lg active:scale-95' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'}`}
+                    style={r.status === 'ACTIVE' ? { boxShadow: '0 1px 3px rgba(0,0,0,0.25)' } : {}}
+                  >
+                    Book Now
+                  </button>
                 </td>
               </tr>
             ))}
+            {filteredResources.length === 0 && (
+              <tr><td colSpan="5" className="px-6 py-12 text-center text-xs text-zinc-400">No resources found</td></tr>
+            )}
           </tbody>
         </table>
       </div>
