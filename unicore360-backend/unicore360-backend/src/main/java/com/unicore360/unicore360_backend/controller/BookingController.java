@@ -6,10 +6,12 @@ import com.unicore360.unicore360_backend.service.BookingService;
 import com.unicore360.unicore360_backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -37,14 +39,19 @@ public class BookingController {
 
             Long resourceId = Long.valueOf(payload.get("resourceId").toString());
             LocalDate date = LocalDate.parse(payload.get("date").toString());
-            String timeRange = payload.get("timeRange").toString();
+
+            // UPDATED: Member 2 logic - Extracting start and end times
+            LocalTime startTime = LocalTime.parse(payload.get("startTime").toString());
+            LocalTime endTime = LocalTime.parse(payload.get("endTime").toString());
+
             String purpose = payload.get("purpose").toString();
 
             Integer attendees = payload.get("attendees") != null && !payload.get("attendees").toString().isEmpty()
                     ? Integer.valueOf(payload.get("attendees").toString())
                     : null;
 
-            Booking booking = bookingService.createBooking(user, resourceId, date, timeRange, purpose, attendees);
+            // Call the updated service method
+            Booking booking = bookingService.createBooking(user, resourceId, date, startTime, endTime, purpose, attendees);
             return ResponseEntity.ok(booking);
 
         } catch (Exception e) {
@@ -59,5 +66,26 @@ public class BookingController {
         User user = userService.getUserByEmail(email);
         Booking cancelled = bookingService.cancelBooking(id, user);
         return ResponseEntity.ok(cancelled);
+    }
+
+    // --- ADMIN ENDPOINTS (Required for Member 2) ---
+
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<Booking> getAllBookings() {
+        return bookingService.getAllBookings();
+    }
+
+    @PutMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Booking> approveBooking(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.approveBooking(id));
+    }
+
+    @PutMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Booking> rejectBooking(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+        String reason = payload.get("reason");
+        return ResponseEntity.ok(bookingService.rejectBooking(id, reason));
     }
 }
