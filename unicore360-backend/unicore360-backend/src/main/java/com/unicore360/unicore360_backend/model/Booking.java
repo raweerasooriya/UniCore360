@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime; // Add this import
 
 @Entity
 @Table(name = "bookings")
@@ -25,17 +26,25 @@ public class Booking {
     private Resource resource;
 
     @Column(nullable = false)
-    private LocalDate bookingDate;      // ✅ field name matches setter
+    private LocalDate bookingDate;
+
+    // --- CHANGE THESE TWO FOR CONFLICT CHECKING ---
+    @Column(nullable = false)
+    private LocalTime startTime;
 
     @Column(nullable = false)
-    private String timeRange;
+    private LocalTime endTime;
+    // ----------------------------------------------
 
     private String purpose;
 
-    private Integer expectedAttendees;   // ✅ field name matches setter
+    private Integer expectedAttendees;
 
     @Enumerated(EnumType.STRING)
     private BookingStatus status = BookingStatus.PENDING;
+
+    // Add this field so Admin can explain why they rejected a booking
+    private String rejectionReason;
 
     private LocalDateTime createdAt;
 
