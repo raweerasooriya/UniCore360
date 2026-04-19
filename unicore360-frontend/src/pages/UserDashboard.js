@@ -115,6 +115,7 @@ export default function UserDashboard() {
   const [reportForm, setReportForm] = useState({
     title: '', category: '', description: '', priority: 'MEDIUM', contactEmail: '', location: ''
   });
+  const [reportErrors, setReportErrors] = useState({});
   const [reportImages, setReportImages] = useState([]);
   const [submittingReport, setSubmittingReport] = useState(false);
 
@@ -561,20 +562,60 @@ export default function UserDashboard() {
   const renderReportIssue = () => {
     const handleSubmit = async (e) => {
       e.preventDefault();
+      const normalizedTitle = reportForm.title.trim();
+      const normalizedCategory = reportForm.category.trim();
+      const normalizedLocation = reportForm.location.trim();
+      const normalizedDescription = reportForm.description.trim();
+      const normalizedContactEmail = reportForm.contactEmail.trim();
+
+      const validationErrors = {};
+
+      // Enforce minimum 4 letters with no spaces before submitting.
+      if (!/^[A-Za-z]{4,}$/.test(normalizedTitle)) {
+        validationErrors.title = 'Title must contain at least 4 letters and no spaces.';
+      }
+
+      if (!normalizedCategory) {
+        validationErrors.category = 'Category is required.';
+      }
+
+      if (normalizedLocation.length < 3) {
+        validationErrors.location = 'Location must be at least 3 characters.';
+      }
+
+      if (normalizedDescription.length < 10) {
+        validationErrors.description = 'Description must be at least 10 characters.';
+      }
+
+      if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(normalizedContactEmail)) {
+        validationErrors.contactEmail = 'Enter a valid email like name@gmail.com.';
+      }
+
+      if (reportImages.length > 3) {
+        validationErrors.images = 'You can upload a maximum of 3 images.';
+      }
+
+      if (Object.keys(validationErrors).length > 0) {
+        setReportErrors(validationErrors);
+        return;
+      }
+
+      setReportErrors({});
       setSubmittingReport(true);
       const formData = new FormData();
-      formData.append('title', reportForm.title);
-      formData.append('description', reportForm.description);
+      formData.append('title', normalizedTitle);
+      formData.append('description', normalizedDescription);
       formData.append('priority', reportForm.priority);
-      formData.append('category', reportForm.category);
-      formData.append('location', reportForm.location);
-      formData.append('contactEmail', reportForm.contactEmail);
+      formData.append('category', normalizedCategory);
+      formData.append('location', normalizedLocation);
+      formData.append('contactEmail', normalizedContactEmail);
       reportImages.forEach(file => formData.append('attachments', file));
 
       try {
         await createTicket(formData);
         setSuccessMessage('✅ Ticket created successfully!');
         setReportForm({ title: '', category: '', description: '', priority: 'MEDIUM', contactEmail: '', location: '' });
+        setReportErrors({});
         setReportImages([]);
         setActiveView('my-reports');   // switch to My Reports tab
       } catch (err) {
@@ -593,18 +634,39 @@ export default function UserDashboard() {
           </h2>
         </div>
         <div className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
             <div>
               <label className="block text-xs font-black mb-1">Title *</label>
-              <input type="text" required value={reportForm.title} onChange={e => setReportForm({...reportForm, title: e.target.value})} className="w-full p-3 bg-zinc-50 border rounded-xl" />
+              <input
+                type="text"
+                value={reportForm.title}
+                onChange={e => {
+                  setReportForm({ ...reportForm, title: e.target.value });
+                  if (reportErrors.title) {
+                    setReportErrors(prev => ({ ...prev, title: '' }));
+                  }
+                }}
+                className={`w-full p-3 bg-zinc-50 border rounded-xl ${reportErrors.title ? 'border-red-500' : ''}`}
+              />
+              {reportErrors.title && <p className="mt-1 text-xs text-red-600">{reportErrors.title}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-black mb-1">Category *</label>
-                <select required value={reportForm.category} onChange={e => setReportForm({...reportForm, category: e.target.value})} className="w-full p-3 bg-zinc-50 border rounded-xl">
+                <select
+                  value={reportForm.category}
+                  onChange={e => {
+                    setReportForm({ ...reportForm, category: e.target.value });
+                    if (reportErrors.category) {
+                      setReportErrors(prev => ({ ...prev, category: '' }));
+                    }
+                  }}
+                  className={`w-full p-3 bg-zinc-50 border rounded-xl ${reportErrors.category ? 'border-red-500' : ''}`}
+                >
                   <option value="">Select</option>
                   <option>EQUIPMENT</option><option>FACILITY</option><option>NETWORK</option><option>OTHER</option>
                 </select>
+                {reportErrors.category && <p className="mt-1 text-xs text-red-600">{reportErrors.category}</p>}
               </div>
               <div>
                 <label className="block text-xs font-black mb-1">Priority *</label>
@@ -615,19 +677,79 @@ export default function UserDashboard() {
             </div>
             <div>
               <label className="block text-xs font-black mb-1">Location *</label>
-              <input type="text" required value={reportForm.location} onChange={e => setReportForm({...reportForm, location: e.target.value})} className="w-full p-3 bg-zinc-50 border rounded-xl" />
+              <input
+                type="text"
+                value={reportForm.location}
+                onChange={e => {
+                  setReportForm({ ...reportForm, location: e.target.value });
+                  if (reportErrors.location) {
+                    setReportErrors(prev => ({ ...prev, location: '' }));
+                  }
+                }}
+                className={`w-full p-3 bg-zinc-50 border rounded-xl ${reportErrors.location ? 'border-red-500' : ''}`}
+              />
+              {reportErrors.location && <p className="mt-1 text-xs text-red-600">{reportErrors.location}</p>}
             </div>
             <div>
               <label className="block text-xs font-black mb-1">Description *</label>
-              <textarea rows={3} required value={reportForm.description} onChange={e => setReportForm({...reportForm, description: e.target.value})} className="w-full p-3 bg-zinc-50 border rounded-xl" />
+              <textarea
+                rows={3}
+                value={reportForm.description}
+                onChange={e => {
+                  setReportForm({ ...reportForm, description: e.target.value });
+                  if (reportErrors.description) {
+                    setReportErrors(prev => ({ ...prev, description: '' }));
+                  }
+                }}
+                className={`w-full p-3 bg-zinc-50 border rounded-xl ${reportErrors.description ? 'border-red-500' : ''}`}
+              />
+              {reportErrors.description && <p className="mt-1 text-xs text-red-600">{reportErrors.description}</p>}
             </div>
             <div>
               <label className="block text-xs font-black mb-1">Contact Email *</label>
-              <input type="email" required value={reportForm.contactEmail} onChange={e => setReportForm({...reportForm, contactEmail: e.target.value})} className="w-full p-3 bg-zinc-50 border rounded-xl" />
+              <input
+                type="email"
+                placeholder="name@gmail.com"
+                value={reportForm.contactEmail}
+                onChange={e => {
+                  setReportForm({ ...reportForm, contactEmail: e.target.value });
+                  if (reportErrors.contactEmail) {
+                    setReportErrors(prev => ({ ...prev, contactEmail: '' }));
+                  }
+                }}
+                onBlur={e => {
+                  const emailValue = e.target.value.trim();
+                  if (!emailValue) {
+                    setReportErrors(prev => ({ ...prev, contactEmail: 'Contact email is required.' }));
+                    return;
+                  }
+                  if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(emailValue)) {
+                    setReportErrors(prev => ({ ...prev, contactEmail: 'Enter a valid email like name@gmail.com.' }));
+                  }
+                }}
+                className={`w-full p-3 bg-zinc-50 border rounded-xl ${reportErrors.contactEmail ? 'border-red-500' : ''}`}
+              />
+              {reportErrors.contactEmail && <p className="mt-1 text-xs text-red-600">{reportErrors.contactEmail}</p>}
             </div>
             <div>
               <label className="block text-xs font-black mb-1">Images (max 3)</label>
-              <input type="file" multiple accept="image/*" onChange={e => setReportImages(Array.from(e.target.files).slice(0,3))} className="w-full" />
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={e => {
+                  const selectedFiles = Array.from(e.target.files);
+                  if (selectedFiles.length > 3) {
+                    setReportErrors(prev => ({ ...prev, images: 'You can upload a maximum of 3 images.' }));
+                    setReportImages(selectedFiles.slice(0, 3));
+                    return;
+                  }
+                  setReportImages(selectedFiles);
+                  if (reportErrors.images) setReportErrors(prev => ({ ...prev, images: '' }));
+                }}
+                className="w-full"
+              />
+              {reportErrors.images && <p className="mt-1 text-xs text-red-600">{reportErrors.images}</p>}
             </div>
             <button type="submit" disabled={submittingReport} className="w-full py-3 bg-zinc-900 text-white rounded-xl font-bold disabled:opacity-50">
               {submittingReport ? 'Submitting...' : 'Submit Report'}
