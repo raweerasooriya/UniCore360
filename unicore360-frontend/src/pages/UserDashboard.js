@@ -287,25 +287,31 @@ export default function UserDashboard() {
   };
 
   const handleRequestBooking = async () => {
-      try {
-          const timeRange = `${bookingTime.start}-${bookingTime.end}`;
-          const payload = {
-              resourceId: bookingDialog.resource.id,
-              date: bookingForm.date,
-              timeRange: timeRange,
-              purpose: bookingForm.purpose,
-              attendees: bookingForm.attendees ? parseInt(bookingForm.attendees) : null
-          };
-          // To this (Ensure it matches the route defined in your Spring Boot/Express controller):
-          await api.post('/bookings', payload);
-          await fetchUserData();
-          setBookingDialog({ open: false, resource: null });
-          setBookingForm({ date: '', purpose: '', attendees: '' });
-          setBookingTime({ start: '09:00', end: '10:00' });
-      } catch (err) {
-          console.error('Booking failed', err);
-          alert(err.response?.data?.message || 'Booking failed. Please try again.');
-      }
+    try {
+      // MEMBER 2 FIX: Send startTime and endTime separately
+      // to match the updated Java Backend
+      const payload = {
+        resourceId: bookingDialog.resource.id,
+        date: bookingForm.date,
+        startTime: `${bookingTime.start}:00`, // Format as HH:mm:ss
+        endTime: `${bookingTime.end}:00`,   // Format as HH:mm:ss
+        purpose: bookingForm.purpose,
+        attendees: bookingForm.attendees ? parseInt(bookingForm.attendees) : null
+      };
+
+      await api.post('/bookings', payload);
+
+      // Success logic
+      setSuccessMessage('✅ Booking request submitted successfully!');
+      await fetchUserData();
+      setBookingDialog({ open: false, resource: null });
+      setBookingForm({ date: '', purpose: '', attendees: '' });
+      setBookingTime({ start: '09:00', end: '10:00' });
+    } catch (err) {
+      console.error('Booking failed', err);
+      // This will now show the actual error message from your Java Conflict Check
+      alert(err.response?.data?.message || 'Booking failed. Please try again.');
+    }
   };
 
   const handleReportIssue = async () => {
