@@ -37,24 +37,24 @@ public class BookingController {
             String email = principal.getName();
             User user = userService.getUserByEmail(email);
 
+            // --- SAFER DATA EXTRACTION ---
+            if (payload.get("resourceId") == null || payload.get("startTime") == null || payload.get("endTime") == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Missing required fields: resourceId, startTime, or endTime"));
+            }
+
             Long resourceId = Long.valueOf(payload.get("resourceId").toString());
             LocalDate date = LocalDate.parse(payload.get("date").toString());
-
-            // UPDATED: Member 2 logic - Extracting start and end times
             LocalTime startTime = LocalTime.parse(payload.get("startTime").toString());
             LocalTime endTime = LocalTime.parse(payload.get("endTime").toString());
 
-            String purpose = payload.get("purpose").toString();
+            String purpose = payload.get("purpose") != null ? payload.get("purpose").toString() : "";
+            Integer attendees = payload.get("attendees") != null ? Integer.valueOf(payload.get("attendees").toString()) : 0;
 
-            Integer attendees = payload.get("attendees") != null && !payload.get("attendees").toString().isEmpty()
-                    ? Integer.valueOf(payload.get("attendees").toString())
-                    : null;
-
-            // Call the updated service method
             Booking booking = bookingService.createBooking(user, resourceId, date, startTime, endTime, purpose, attendees);
             return ResponseEntity.ok(booking);
 
         } catch (Exception e) {
+            e.printStackTrace(); // This shows the error in IntelliJ console
             return ResponseEntity.badRequest().body(Map.of("message", "Booking failed: " + e.getMessage()));
         }
     }
