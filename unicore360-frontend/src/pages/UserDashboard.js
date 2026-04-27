@@ -525,7 +525,7 @@ export default function UserDashboard() {
                     </div>
                   </div>
                   <div><label className="block text-xs font-black mb-1">Purpose</label><textarea rows={2} className="w-full p-3 bg-zinc-50 border rounded-xl" value={bookingForm.purpose} onChange={e => setBookingForm({...bookingForm, purpose: e.target.value})} /></div>
-                  <div><label className="block text-xs font-black mb-1">Expected Attendees</label><input type="number" className="w-full p-3 bg-zinc-50 border rounded-xl" value={bookingForm.attendees} onChange={e => setBookingForm({...bookingForm, attendees: e.target.value})} /></div>
+                  <div><label className="block text-xs font-black mb-1">Expected Attendees</label><input type="number" min="1" className="w-full p-3 bg-zinc-50 border rounded-xl" value={bookingForm.attendees} onChange={e => setBookingForm({...bookingForm, attendees: e.target.value})} onBlur={e => { if (e.target.value !== '' && parseInt(e.target.value) < 1) setBookingForm({...bookingForm, attendees: '1'}); }} /></div>
                 </div>
                 <div className="flex gap-3 mt-6">
                   <button onClick={() => setBookingDialog({ open: false, resource: null })} className="flex-1 py-3 bg-zinc-100 rounded-xl font-bold">Cancel</button>
