@@ -693,8 +693,10 @@ export default function AdminDashboard() {
                                               <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-widest">Capacity</label>
                                               <input
                                                   type="number"
+                                                  min="1"
                                                   value={resourceForm.capacity}
                                                   onChange={(e) => setResourceForm({...resourceForm, capacity: e.target.value})}
+                                                  onBlur={(e) => { if (e.target.value !== '' && parseInt(e.target.value) < 1) setResourceForm({...resourceForm, capacity: '1'}); }}
                                                   className="w-full h-10 px-3.5 bg-zinc-50 border border-zinc-200 rounded-lg text-[13.5px] text-zinc-900 font-medium placeholder-zinc-400 outline-none transition-all duration-150 focus:bg-white focus:border-zinc-900 focus:ring-3 focus:ring-zinc-900/8"
                                                   placeholder="—"
                                               />
